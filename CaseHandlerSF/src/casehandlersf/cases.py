@@ -34,6 +34,24 @@ DATE_FORMATS = (
 )
 
 
+class CaseFileError(Exception):
+    """Base error for a case export that can't be loaded."""
+
+    def __init__(self, path: Path, message: str) -> None:
+        super().__init__(f"{path}: {message}")
+        self.path = path
+
+
+# Not raised yet: examples of how to split CaseFileError into more specific
+# errors if a caller ever needs to handle "missing" and "malformed" differently.
+class CaseFileNotFoundError(CaseFileError):
+    """The case export doesn't exist."""
+
+
+class MalformedCaseFileError(CaseFileError):
+    """The case export exists but isn't a usable CSV."""
+
+
 @dataclass(frozen=True, slots=True)
 class Case:
     case_number: str
@@ -55,7 +73,7 @@ def _normalize_header(header: str) -> str:
     return re.sub(r"[^a-z0-9]", "", header.lower())
 
 
-def _map_columns(headers: list[str]) -> dict[str, str]:
+def _map_columns(path: Path, headers: list[str]) -> dict[str, str]:
     """Return {field: original CSV header} for every field found in the file."""
     by_normalized = {_normalize_header(h): h for h in headers}
     mapping: dict[str, str] = {}
@@ -64,9 +82,12 @@ def _map_columns(headers: list[str]) -> dict[str, str]:
             if alias in by_normalized:
                 mapping[field] = by_normalized[alias]
                 break
-    missing = {"case_number", "created"} - mapping.keys()
+    missing = sorted({"case_number", "created"} - mapping.keys())
     if missing:
-        raise ValueError(f"CSV is missing required columns: {', '.join(sorted(missing))}")
+        expected = "; ".join(f"{field} (one of: {', '.join(COLUMN_ALIASES[field])})" for field in missing)
+        raise CaseFileError(
+            path, f"missing required columns: {expected}. Found columns: {', '.join(headers)}"
+        )
     return mapping
 
 
@@ -93,30 +114,50 @@ def load_cases(path: Path) -> tuple[list[Case], int]:
 
     Returns the cleaned cases and the number of rows skipped (no case number,
     unparseable created date, or duplicate case number).
+
+    Raises CaseFileError if the file is missing or can't be read as a case
+    export CSV.
     """
     cases: dict[str, Case] = {}
     skipped = 0
-    with path.open(newline="", encoding="utf-8-sig") as f:
-        reader = csv.DictReader(f)
-        columns = _map_columns(reader.fieldnames or [])
+    try:
+        with path.open(newline="", encoding="utf-8-sig") as f:
+            reader = csv.DictReader(f)
+            if not reader.fieldnames:
+                raise CaseFileError(path, "file is empty (expected a CSV header row)")
+            columns = _map_columns(path, reader.fieldnames)
 
-        def get(row: dict[str, str], field: str) -> str:
-            return (row.get(columns[field]) or "").strip() if field in columns else ""
+            def get(row: dict[str, str], field: str) -> str:
+                return (row.get(columns[field]) or "").strip() if field in columns else ""
 
-        for row in reader:
-            case_number = get(row, "case_number")
-            created = _parse_date(get(row, "created"))
-            if not case_number or created is None or case_number in cases:
-                skipped += 1
-                continue
-            cases[case_number] = Case(
-                case_number=case_number,
-                subject=" ".join(get(row, "subject").split()),
-                status=get(row, "status").title() or "Unknown",
-                priority=_clean_priority(get(row, "priority")),
-                created=created,
-                closed=_parse_date(get(row, "closed")),
-            )
+            try:
+                for row in reader:
+                    case_number = get(row, "case_number")
+                    created = _parse_date(get(row, "created"))
+                    if not case_number or created is None or case_number in cases:
+                        skipped += 1
+                        continue
+                    cases[case_number] = Case(
+                        case_number=case_number,
+                        subject=" ".join(get(row, "subject").split()),
+                        status=get(row, "status").title() or "Unknown",
+                        priority=_clean_priority(get(row, "priority")),
+                        created=created,
+                        closed=_parse_date(get(row, "closed")),
+                    )
+            except csv.Error as e:
+                # line_num counts lines read successfully, so the bad record starts on the next one.
+                raise CaseFileError(path, f"invalid CSV near line {reader.line_num + 1}: {e}") from e
+    except FileNotFoundError as e:
+        raise CaseFileError(path, "file not found") from e
+    except IsADirectoryError as e:
+        raise CaseFileError(path, "is a directory, not a CSV file") from e
+    except OSError as e:
+        raise CaseFileError(path, f"cannot read file ({e.strerror})") from e
+    except UnicodeDecodeError as e:
+        raise CaseFileError(
+            path, "file is not UTF-8 text; re-export the CSV with UTF-8 encoding"
+        ) from e
     return list(cases.values()), skipped
 
 
