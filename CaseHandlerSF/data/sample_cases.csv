@@ -1,0 +1,51 @@
+id,subject,description,priority,status,created_date
+CASE-1001,"Login issues after password reset","User reports unable to log in after requesting a password reset. The reset email was never received.",Medium,Resolved,2026-07-01
+CASE-1002,"Billing inquiry - unexpected charge","Can you explain why I was charged twice for my monthly subscription last month?",High,Resolved,2026-07-02
+CASE-1003,"Feature request - dark mode","Would love to see a dark mode option in the dashboard for nighttime work.",Low,Closed,2026-07-04
+CASE-1004,"API integration error with webhook","Getting 500 errors when trying to set up webhooks for our internal system.",High,Resolved,2026-07-05
+CASE-1005,"Slow performance during peak hours","The application becomes sluggish around 2-4 PM EST. Page loads take 10+ seconds.",Medium,Closed,2026-07-07
+CASE-1006,"Export data to CSV not working","When I try to export my report data to CSV, the file downloads but is empty.",High,Resolved,2026-07-08
+CASE-1007,"Integrating with third-party CRM","We're trying to connect this tool with our Salesforce instance but the connector keeps disconnecting.",Medium,Closed,2026-07-10
+CASE-1008,"Account permission issue","I should have admin access to my workspace but I can only see read-only options.",High,Resolved,2026-07-11
+CASE-1009,"Mobile app crashes on startup","The iOS app crashes immediately after opening on version 2.3.1.",Urgent,Resolved,2026-07-13
+CASE-1010,"Request password reset link expiry increase","The password reset link expires after 1 hour but we need at least 4 hours for our process.",Low,Closed,2026-07-14
+CASE-1011,"Duplicate invoices in billing history","I'm seeing the same invoice twice in my billing history. This is confusing and may affect our accounting.",High,Resolved,2026-07-16
+CASE-1012,"Cannot delete custom fields","I added custom fields to my form but now I can't remove them even though the option appears.",Medium,In Progress,2026-07-17
+CASE-1013,"Two-factor authentication setup failing","When trying to enable 2FA, I get an error after entering the verification code.",Medium,Resolved,2026-07-19
+CASE-1014,"Data synchronization delay","Our data is taking 30+ minutes to sync from the external source instead of the usual 5 minutes.",High,Pending Customer,2026-07-20
+CASE-1015,"Feature request - bulk user management","We need to be able to add or remove multiple users at once rather than one at a time.",Low,Closed,2026-07-22
+CASE-1016,"Calendar integration not syncing","Events I create in the app don't appear in my Google Calendar and vice versa.",High,In Progress,2026-07-23
+CASE-1017,"Subscription renewal notification not received","I didn't get a reminder before my subscription expired and my access was suddenly cut off.",Medium,Resolved,2026-07-25
+CASE-1018,"SSO configuration issues","We're having trouble setting up single sign-on with our company's directory service.",High,Pending Customer,2026-07-26
+CASE-1019,"Report generation taking too long","When I generate a report with 6 months of data, it takes 15 minutes to process.",Medium,In Progress,2026-07-28
+CASE-1020,"Cannot update billing address","The form to edit billing address keeps showing validation errors even though the address is correct.",High,Resolved,2026-07-29
+CASE-1021,"Workflow automation limits question","Are there limits to how many automation rules we can create per workspace?",Low,Closed,2026-07-31
+CASE-1022,"Export scheduled reports feature request","We'd like the ability to schedule and automatically export reports to our cloud storage.",Low,Open,2026-08-02
+CASE-1023,"Incorrect data displayed in dashboard widget","One of my dashboard widgets shows revenue from 2 months ago instead of current data.",Medium,In Progress,2026-08-03
+CASE-1024,"User invitation email not being sent","When I invite new team members, they never receive the invitation email.",Urgent,In Progress,2026-08-05
+CASE-1025,"API rate limiting too restrictive","Our integration is hitting rate limits even though we're within the documented limits.",High,Pending Customer,2026-08-06
+CASE-1026,"Feature request - API documentation improvements","The API documentation is missing examples for several endpoints we're trying to use.",Low,Open,2026-08-08
+CASE-1027,"Database backup and restore question","Can you clarify the backup retention policy and how to restore from a previous backup?",Medium,Closed,2026-08-09
+CASE-1028,"Notification settings not persisting","I change my notification preferences but they revert back to defaults after logout.",Medium,In Progress,2026-08-11
+CASE-1029,"Multi-language support request","Our team works across different countries and we need support for additional languages.",Low,Open,2026-08-13
+CASE-1030,"Recurring task functionality bug","Recurring tasks don't properly skip weekends when set to daily frequency.",High,In Progress,2026-08-14
+CASE-1031,"Storage limit exceeded without warning","We were suddenly unable to upload files without receiving any warning about storage limits.",High,Pending Customer,2026-08-16
+CASE-1032,"Team collaboration features lag in real-time","When multiple team members edit simultaneously, changes appear with a 30-second delay.",Medium,In Progress,2026-08-17
+CASE-1033,"Request for better filtering options","We need more granular filtering options in the reports section for better data analysis.",Low,Open,2026-08-19
+CASE-1034,"Account locked after failed login attempts","My account got locked for 24 hours after entering the wrong password 3 times.",Medium,Resolved,2026-08-20
+CASE-1035,"Inconsistent timezone handling across reports","Reports show different times depending on which user views them.",High,In Progress,2026-08-22
+CASE-1036,"File upload size limitation too low","We need to upload files larger than 50MB but the current limit won't allow it.",High,Pending Customer,2026-08-23
+CASE-1037,"Mobile responsive design issues on tablets","The app layout breaks on iPad in landscape mode making it hard to use.",Medium,In Progress,2026-08-25
+CASE-1038,"Template duplication feature request","We want to duplicate existing templates to save time creating similar workflows.",Low,Open,2026-08-26
+CASE-1039,"Performance issue with large dataset filtering","Filtering a table with 100K+ rows causes the browser to lag significantly.",High,In Progress,2026-08-28
+CASE-1040,"Compliance and audit trail question","We need to ensure all user actions are logged for compliance purposes.",Medium,Pending Customer,2026-08-29
+CASE-1041,"Email notification formatting issue","HTML tags are showing as plain text in email notifications instead of being rendered.",Medium,In Progress,2026-08-31
+CASE-1042,"Auto-save functionality not working on forms","When I'm filling out a form, my data isn't being saved automatically if I get disconnected.",High,Pending Customer,2026-09-02
+CASE-1043,"Request for custom domain support","We'd like to host our instance on our own custom domain instead of the default subdomain.",Low,Open,2026-09-03
+CASE-1044,"Third-party payment processor integration failing","Payments aren't processing through our configured payment gateway in the last 24 hours.",Urgent,In Progress,2026-09-05
+CASE-1045,"Data export containing sensitive information","We noticed exported files include fields marked as sensitive which shouldn't be exported.",High,Pending Customer,2026-09-06
+CASE-1046,"Report scheduling timezone issue","Scheduled reports are generating at wrong times because the timezone setting is ignored.",Medium,In Progress,2026-09-08
+CASE-1047,"Request for advanced analytics and metrics","We need more detailed analytics including user behavior tracking and funnel analysis.",Low,Open,2026-09-10
+CASE-1048,"Broken links in API documentation","Several links in the API documentation return 404 errors.",Medium,Open,2026-09-12
+CASE-1049,"SSO logout not clearing session properly","After logging out through SSO, the session isn't fully cleared and cached data persists.",High,In Progress,2026-09-21
+CASE-1050,"Multi-workspace collaboration limitation","We need the ability to share projects across multiple workspaces for our enterprise setup.",Low,Open,2026-09-30
