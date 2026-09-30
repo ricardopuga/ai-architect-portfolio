@@ -4,11 +4,13 @@ A small command-line tool that reads a Salesforce case export (CSV), cleans the 
 
 ## Requirements
 
-- [uv] installed
+- [uv](https://docs.astral.sh/uv/) installed
 
 ## Run it
 
-clone repo and run
+Clone the repo and run:
+
+```bash
 uv run casehandlersf data/sample_cases.csv
 ```
 
