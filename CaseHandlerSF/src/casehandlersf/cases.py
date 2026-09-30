@@ -97,7 +97,8 @@ def _parse_date(value: str) -> date | None:
         return None
     for fmt in DATE_FORMATS:
         try:
-            return datetime.strptime(value, fmt).date()
+            # Only the calendar date is kept, so a missing time zone doesn't matter.
+            return datetime.strptime(value, fmt).date()  # noqa: DTZ007
         except ValueError:
             continue
     return None
@@ -171,7 +172,7 @@ def average_open_age(cases: list[Case], today: date) -> float | None:
 
 
 def print_summary(path: Path, today: date | None = None) -> None:
-    today = today or date.today()
+    today = today or datetime.now().astimezone().date()
     cases, skipped = load_cases(path)
 
     print(f"Loaded {len(cases)} cases from {path} ({skipped} rows skipped)\n")
