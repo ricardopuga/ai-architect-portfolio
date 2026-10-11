@@ -87,7 +87,15 @@ uv run fastapi dev src/casehandlersf/api.py
   | 422 | The request body is invalid; `detail` lists each problem field |
   | 502 | Salesforce refused or failed the call; `detail` includes the Salesforce error code |
 
-  The "Run As" user needs Edit access to the Case. With only read access, Salesforce refuses the comment and the API returns 502 with `INSUFFICIENT_ACCESS_ON_CROSS_REFERENCE_ENTITY`.
+  The "Run As" user needs Edit access to the Case. With only read access, Salesforce refuses the comment and the API returns 502 with `INSUFFICIENT_ACCESS_ON_CROSS_REFERENCE_ENTITY`. The sfdx project in `salesforce/` has a `CaseHandler_API_Comment` permission set that grants Read and Edit on Case (not Delete or Modify All). Deploy it and assign it alongside `CaseHandler_API_Read`:
+
+  ```bash
+  cd salesforce
+  sf project deploy start --metadata PermissionSet:CaseHandler_API_Comment --target-org <alias>
+  sf org assign permset --name CaseHandler_API_Comment --on-behalf-of <integration-username> --target-org <alias>
+  ```
+
+  The permission set grants Edit on the Case object only. The user also needs edit access to the Case records through sharing: either the org-wide default for Case is Public Read/Write, or a sharing rule gives that access.
 
 Interactive docs are at http://127.0.0.1:8000/docs.
 
