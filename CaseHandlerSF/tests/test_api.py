@@ -2,7 +2,10 @@ from pathlib import Path
 
 import pytest
 from fastapi.testclient import TestClient
-from simple_salesforce.exceptions import SalesforceAuthenticationFailed
+from simple_salesforce.exceptions import (
+    SalesforceAuthenticationFailed,
+    SalesforceRefusedRequest,
+)
 
 from casehandlersf import api
 from casehandlersf.api import app
@@ -103,3 +106,93 @@ def test_live_salesforce_lookup(monkeypatch: pytest.MonkeyPatch) -> None:
     by_id = client.get(f"/cases/{record_id}")
     assert by_id.json()["case_number"] == "00001001"
     assert client.get("/cases/99999999").status_code == 404
+
+
+@pytest.fixture
+def created_comments(monkeypatch: pytest.MonkeyPatch) -> list[tuple[str, str, bool]]:
+    """Fake add_case_comment; records each call instead of writing to Salesforce."""
+    calls: list[tuple[str, str, bool]] = []
+
+    def fake_add(case_id: str, body: str, is_published: bool) -> str:
+        calls.append((case_id, body, is_published))
+        return "00ag800000CommentAAA"
+
+    monkeypatch.setattr(api, "add_case_comment", fake_add)
+    return calls
+
+
+def test_create_comment(created_comments: list) -> None:
+    response = client.post(
+        "/cases/00001001/comments", json={"body": "  Called the customer back.  "}
+    )
+    assert response.status_code == 201
+    assert response.json() == {
+        "id": "00ag800000CommentAAA",
+        "case_id": "500g800002HiYr3AAF",
+        "body": "Called the customer back.",
+        "is_published": False,
+    }
+    assert created_comments == [
+        ("500g800002HiYr3AAF", "Called the customer back.", False)
+    ]
+
+
+def test_create_published_comment(created_comments: list) -> None:
+    response = client.post(
+        "/cases/00001002/comments", json={"body": "Fixed.", "is_published": True}
+    )
+    assert response.status_code == 201
+    assert created_comments == [("500g800002HiYr5AAF", "Fixed.", True)]
+
+
+@pytest.mark.parametrize(
+    ("payload", "field"),
+    [
+        ({}, "body"),
+        ({"body": ""}, "body"),
+        ({"body": "   "}, "body"),
+        ({"body": "x" * (api.COMMENT_MAX_LENGTH + 1)}, "body"),
+        ({"body": 123}, "body"),
+        ({"body": "ok", "is_published": "maybe"}, "is_published"),
+        ({"body": "ok", "author": "me"}, "author"),
+    ],
+)
+def test_invalid_comment_returns_422(
+    created_comments: list, payload: dict, field: str
+) -> None:
+    response = client.post("/cases/00001001/comments", json=payload)
+    assert response.status_code == 422
+    assert [err["loc"] for err in response.json()["detail"]] == [["body", field]]
+    assert created_comments == []
+
+
+def test_comment_at_max_length_is_accepted(created_comments: list) -> None:
+    body = "x" * api.COMMENT_MAX_LENGTH
+    response = client.post("/cases/00001001/comments", json={"body": body})
+    assert response.status_code == 201
+
+
+def test_comment_on_unknown_case_returns_404(created_comments: list) -> None:
+    response = client.post("/cases/99999999/comments", json={"body": "Hello"})
+    assert response.status_code == 404
+    assert response.json() == {"detail": "case 99999999 not found"}
+    assert created_comments == []
+
+
+def test_comment_rejected_by_salesforce_returns_502(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    def refuse(case_id: str, body: str, is_published: bool) -> str:
+        raise SalesforceRefusedRequest(
+            "https://example.my.salesforce.com/services/data/v65.0/sobjects/CaseComment/",
+            403,
+            "CaseComment",
+            [{"message": "insufficient access", "errorCode": "INSUFFICIENT_ACCESS"}],
+        )
+
+    monkeypatch.setattr(api, "add_case_comment", refuse)
+    response = client.post("/cases/00001001/comments", json={"body": "Hello"})
+    assert response.status_code == 502
+    assert response.json() == {
+        "detail": "Salesforce request failed: SalesforceRefusedRequest (INSUFFICIENT_ACCESS)"
+    }
