@@ -1,0 +1,60 @@
+{
+  "records": [
+    {
+      "attributes": {
+        "type": "Account",
+        "referenceId": "NorthwindRef"
+      },
+      "Name": "Northwind Logistics",
+      "Industry": "Transportation",
+      "Type": "Customer - Direct",
+      "Phone": "+1 312 555 0140",
+      "Website": "https://northwind-logistics.example.com",
+      "BillingCity": "Chicago",
+      "BillingStateCode": "IL",
+      "BillingCountryCode": "US"
+    },
+    {
+      "attributes": {
+        "type": "Account",
+        "referenceId": "BluePeakRef"
+      },
+      "Name": "Blue Peak Health",
+      "Industry": "Healthcare",
+      "Type": "Customer - Direct",
+      "Phone": "+1 617 555 0192",
+      "Website": "https://bluepeakhealth.example.com",
+      "BillingCity": "Boston",
+      "BillingStateCode": "MA",
+      "BillingCountryCode": "US"
+    },
+    {
+      "attributes": {
+        "type": "Account",
+        "referenceId": "HarborRef"
+      },
+      "Name": "Harbor Retail Group",
+      "Industry": "Retail",
+      "Type": "Customer - Channel",
+      "Phone": "+1 206 555 0117",
+      "Website": "https://harborretail.example.com",
+      "BillingCity": "Seattle",
+      "BillingStateCode": "WA",
+      "BillingCountryCode": "US"
+    },
+    {
+      "attributes": {
+        "type": "Account",
+        "referenceId": "SummitRef"
+      },
+      "Name": "Summit Manufacturing",
+      "Industry": "Manufacturing",
+      "Type": "Customer - Direct",
+      "Phone": "+1 303 555 0163",
+      "Website": "https://summitmfg.example.com",
+      "BillingCity": "Denver",
+      "BillingStateCode": "CO",
+      "BillingCountryCode": "US"
+    }
+  ]
+}

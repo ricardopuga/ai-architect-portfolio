@@ -1,0 +1,304 @@
+{
+  "records": [
+    {
+      "attributes": {
+        "type": "Case",
+        "referenceId": "Case01"
+      },
+      "Subject": "Shipment tracking portal returns 500 error",
+      "Description": "Customer portal tracking page fails with a server error for all shipments since this morning's release.",
+      "Status": "Escalated",
+      "Priority": "High",
+      "Origin": "Web",
+      "Type": "Electronic",
+      "Reason": "Breakdown",
+      "ContactId": "@ContactNW2",
+      "AccountId": "@NorthwindRef"
+    },
+    {
+      "attributes": {
+        "type": "Case",
+        "referenceId": "Case02"
+      },
+      "Subject": "Delivery scanner not syncing with dispatch",
+      "Description": "Handheld scanners at the Gary depot stop syncing after about 20 minutes; drivers re-scan manually.",
+      "Status": "Working",
+      "Priority": "High",
+      "Origin": "Phone",
+      "Type": "Electronic",
+      "Reason": "Performance",
+      "ContactId": "@ContactNW1",
+      "AccountId": "@NorthwindRef"
+    },
+    {
+      "attributes": {
+        "type": "Case",
+        "referenceId": "Case03"
+      },
+      "Subject": "Request for additional user licenses",
+      "Description": "Customer wants 15 more licenses for the new Milwaukee hub before month end.",
+      "Status": "New",
+      "Priority": "Low",
+      "Origin": "Email",
+      "Type": "Other",
+      "Reason": "Other",
+      "ContactId": "@ContactNW1",
+      "AccountId": "@NorthwindRef"
+    },
+    {
+      "attributes": {
+        "type": "Case",
+        "referenceId": "Case04"
+      },
+      "Subject": "Invoice shows duplicate fuel surcharge",
+      "Description": "September invoice lists the fuel surcharge twice; customer requests a credit memo.",
+      "Status": "Closed",
+      "Priority": "Medium",
+      "Origin": "Email",
+      "Type": "Other",
+      "Reason": "Other",
+      "ContactId": "@ContactNW1",
+      "AccountId": "@NorthwindRef"
+    },
+    {
+      "attributes": {
+        "type": "Case",
+        "referenceId": "Case05"
+      },
+      "Subject": "Password reset email never arrives",
+      "Description": "IT lead reports reset emails are not delivered to their domain; possibly blocked by their spam filter.",
+      "Status": "Closed",
+      "Priority": "Medium",
+      "Origin": "Email",
+      "Type": "Electronic",
+      "Reason": "Other",
+      "ContactId": "@ContactNW2",
+      "AccountId": "@NorthwindRef"
+    },
+    {
+      "attributes": {
+        "type": "Case",
+        "referenceId": "Case06"
+      },
+      "Subject": "Patient intake kiosk freezes at check-in",
+      "Description": "Two kiosks in the east wing freeze on the insurance card scan step several times a day.",
+      "Status": "Escalated",
+      "Priority": "High",
+      "Origin": "Phone",
+      "Type": "Electronic",
+      "Reason": "Breakdown",
+      "ContactId": "@ContactBP1",
+      "AccountId": "@BluePeakRef"
+    },
+    {
+      "attributes": {
+        "type": "Case",
+        "referenceId": "Case07"
+      },
+      "Subject": "HL7 interface dropping lab results",
+      "Description": "Some lab result messages are not reaching the EHR; affects about 3% of messages since Tuesday.",
+      "Status": "Working",
+      "Priority": "High",
+      "Origin": "Web",
+      "Type": "Electronic",
+      "Reason": "Performance",
+      "ContactId": "@ContactBP1",
+      "AccountId": "@BluePeakRef"
+    },
+    {
+      "attributes": {
+        "type": "Case",
+        "referenceId": "Case08"
+      },
+      "Subject": "Billing export missing CPT codes",
+      "Description": "Monthly billing export omits CPT codes for telehealth visits.",
+      "Status": "Working",
+      "Priority": "Medium",
+      "Origin": "Email",
+      "Type": "Other",
+      "Reason": "Equipment Complexity",
+      "ContactId": "@ContactBP2",
+      "AccountId": "@BluePeakRef"
+    },
+    {
+      "attributes": {
+        "type": "Case",
+        "referenceId": "Case09"
+      },
+      "Subject": "Training session for new billing staff",
+      "Description": "Requesting a 1-hour onboarding session for three new billing coordinators.",
+      "Status": "New",
+      "Priority": "Low",
+      "Origin": "Email",
+      "Type": "Other",
+      "Reason": "Feedback",
+      "ContactId": "@ContactBP2",
+      "AccountId": "@BluePeakRef"
+    },
+    {
+      "attributes": {
+        "type": "Case",
+        "referenceId": "Case10"
+      },
+      "Subject": "Badge printer installation at new clinic",
+      "Description": "Need setup assistance for the badge printer at the Cambridge satellite clinic.",
+      "Status": "Closed",
+      "Priority": "Low",
+      "Origin": "Phone",
+      "Type": "Electrical",
+      "Reason": "Installation",
+      "ContactId": "@ContactBP1",
+      "AccountId": "@BluePeakRef"
+    },
+    {
+      "attributes": {
+        "type": "Case",
+        "referenceId": "Case11"
+      },
+      "Subject": "POS terminals offline in two stores",
+      "Description": "Payment terminals in stores 14 and 22 lost connectivity; stores are taking cash only.",
+      "Status": "Escalated",
+      "Priority": "High",
+      "Origin": "Phone",
+      "Type": "Electronic",
+      "Reason": "Breakdown",
+      "ContactId": "@ContactHR1",
+      "AccountId": "@HarborRef"
+    },
+    {
+      "attributes": {
+        "type": "Case",
+        "referenceId": "Case12"
+      },
+      "Subject": "Inventory counts out of sync after update",
+      "Description": "Stock levels in the back office differ from the POS after last night's update.",
+      "Status": "Working",
+      "Priority": "Medium",
+      "Origin": "Web",
+      "Type": "Electronic",
+      "Reason": "Performance",
+      "ContactId": "@ContactHR1",
+      "AccountId": "@HarborRef"
+    },
+    {
+      "attributes": {
+        "type": "Case",
+        "referenceId": "Case13"
+      },
+      "Subject": "Damaged shelving units on delivery",
+      "Description": "Six shelving units arrived with bent brackets; customer wants replacements.",
+      "Status": "New",
+      "Priority": "Medium",
+      "Origin": "Email",
+      "Type": "Structural",
+      "Reason": "Other",
+      "ContactId": "@ContactHR2",
+      "AccountId": "@HarborRef"
+    },
+    {
+      "attributes": {
+        "type": "Case",
+        "referenceId": "Case14"
+      },
+      "Subject": "Question about volume discount terms",
+      "Description": "Procurement asks whether the volume discount applies to the Q4 seasonal order.",
+      "Status": "Closed",
+      "Priority": "Low",
+      "Origin": "Email",
+      "Type": "Other",
+      "Reason": "Other",
+      "ContactId": "@ContactHR2",
+      "AccountId": "@HarborRef"
+    },
+    {
+      "attributes": {
+        "type": "Case",
+        "referenceId": "Case15"
+      },
+      "Subject": "Self-checkout scale calibration",
+      "Description": "Self-checkout scales at store 8 reject produce items as unexpected weight.",
+      "Status": "Closed",
+      "Priority": "Medium",
+      "Origin": "Phone",
+      "Type": "Mechanical",
+      "Reason": "Equipment Complexity",
+      "ContactId": "@ContactHR1",
+      "AccountId": "@HarborRef"
+    },
+    {
+      "attributes": {
+        "type": "Case",
+        "referenceId": "Case16"
+      },
+      "Subject": "Conveyor motor overheating on line 3",
+      "Description": "Motor trips the thermal cutoff after roughly 2 hours of operation; production is reduced.",
+      "Status": "Escalated",
+      "Priority": "High",
+      "Origin": "Phone",
+      "Type": "Mechanical",
+      "Reason": "Breakdown",
+      "ContactId": "@ContactSM2",
+      "AccountId": "@SummitRef"
+    },
+    {
+      "attributes": {
+        "type": "Case",
+        "referenceId": "Case17"
+      },
+      "Subject": "Control panel firmware upgrade failed",
+      "Description": "Upgrade to firmware 4.2 failed halfway; panel boots into recovery mode.",
+      "Status": "Working",
+      "Priority": "High",
+      "Origin": "Web",
+      "Type": "Electronic",
+      "Reason": "Installation",
+      "ContactId": "@ContactSM1",
+      "AccountId": "@SummitRef"
+    },
+    {
+      "attributes": {
+        "type": "Case",
+        "referenceId": "Case18"
+      },
+      "Subject": "Hydraulic press leaking fluid",
+      "Description": "Small but steady hydraulic leak near the main cylinder seal on press 2.",
+      "Status": "Working",
+      "Priority": "Medium",
+      "Origin": "Phone",
+      "Type": "Mechanical",
+      "Reason": "Breakdown",
+      "ContactId": "@ContactSM2",
+      "AccountId": "@SummitRef"
+    },
+    {
+      "attributes": {
+        "type": "Case",
+        "referenceId": "Case19"
+      },
+      "Subject": "Feedback on new maintenance dashboard",
+      "Description": "Plant engineer suggests adding mean time between failures to the dashboard.",
+      "Status": "New",
+      "Priority": "Low",
+      "Origin": "Web",
+      "Type": "Other",
+      "Reason": "Feedback",
+      "ContactId": "@ContactSM1",
+      "AccountId": "@SummitRef"
+    },
+    {
+      "attributes": {
+        "type": "Case",
+        "referenceId": "Case20"
+      },
+      "Subject": "Wiring diagram request for packaging unit",
+      "Description": "Customer needs the updated wiring diagram for the packaging unit, revision C.",
+      "Status": "Closed",
+      "Priority": "Low",
+      "Origin": "Email",
+      "Type": "Electrical",
+      "Reason": "Other",
+      "ContactId": "@ContactSM1",
+      "AccountId": "@SummitRef"
+    }
+  ]
+}
