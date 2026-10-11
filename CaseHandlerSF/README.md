@@ -48,3 +48,29 @@ How the data is cleaned:
 - Dates can be in ISO format (`2026-09-01`, `2026-09-01T14:03:00.000+0000`) or day-first (`01/09/2026`). US-style month-first dates are not supported.
 
 If the file is missing, empty, not UTF-8, or lacks a required column, the tool prints a one-line error explaining what's wrong and exits.
+
+## HTTP API
+
+A small FastAPI app serves Cases queried live from Salesforce with SOQL (via [simple-salesforce](https://github.com/simple-salesforce/simple-salesforce)).
+
+It authenticates with the OAuth 2.0 Client Credentials flow, so the org needs an External Client App with that flow enabled and a "Run As" user that can read Cases. Copy `.env.example` to `.env` (it is gitignored) and fill it in:
+
+```dotenv
+SF_DOMAIN_URL=https://yourdomain.my.salesforce.com   # your My Domain URL, not login.salesforce.com
+SF_CLIENT_ID=<consumer key>
+SF_CLIENT_SECRET=<consumer secret>
+SF_API_VERSION=v65.0
+```
+
+Then start the server from the project directory (that's where `.env` is read from):
+
+```bash
+uv run fastapi dev src/casehandlersf/api.py
+```
+
+- `GET /health` returns `{"status": "ok"}`
+- `GET /cases/{key}` returns one Case, looked up by case number (`/cases/00001001`) or record Id (`/cases/500g800002HiYr3AAF`). It returns 404 if no Case matches and 502 if the Salesforce call fails (bad credentials, network error).
+
+Interactive docs are at http://127.0.0.1:8000/docs.
+
+Run the tests with `uv run pytest`. They use a fake Salesforce, except for one live test that runs only when `.env` exists.

@@ -1,0 +1,100 @@
+{
+  "records": [
+    {
+      "attributes": {
+        "type": "Contact",
+        "referenceId": "ContactNW1"
+      },
+      "FirstName": "Maria",
+      "LastName": "Gonzalez",
+      "Title": "Operations Manager",
+      "Email": "maria.gonzalez@northwind-logistics.example.com",
+      "Phone": "+1 555 010 0001",
+      "AccountId": "@NorthwindRef"
+    },
+    {
+      "attributes": {
+        "type": "Contact",
+        "referenceId": "ContactNW2"
+      },
+      "FirstName": "James",
+      "LastName": "Okafor",
+      "Title": "IT Lead",
+      "Email": "james.okafor@northwind-logistics.example.com",
+      "Phone": "+1 555 010 0002",
+      "AccountId": "@NorthwindRef"
+    },
+    {
+      "attributes": {
+        "type": "Contact",
+        "referenceId": "ContactBP1"
+      },
+      "FirstName": "Priya",
+      "LastName": "Raman",
+      "Title": "Clinical Systems Director",
+      "Email": "priya.raman@bluepeakhealth.example.com",
+      "Phone": "+1 555 010 0003",
+      "AccountId": "@BluePeakRef"
+    },
+    {
+      "attributes": {
+        "type": "Contact",
+        "referenceId": "ContactBP2"
+      },
+      "FirstName": "Tom",
+      "LastName": "Becker",
+      "Title": "Billing Coordinator",
+      "Email": "tom.becker@bluepeakhealth.example.com",
+      "Phone": "+1 555 010 0004",
+      "AccountId": "@BluePeakRef"
+    },
+    {
+      "attributes": {
+        "type": "Contact",
+        "referenceId": "ContactHR1"
+      },
+      "FirstName": "Aiko",
+      "LastName": "Tanaka",
+      "Title": "Store Operations Lead",
+      "Email": "aiko.tanaka@harborretail.example.com",
+      "Phone": "+1 555 010 0005",
+      "AccountId": "@HarborRef"
+    },
+    {
+      "attributes": {
+        "type": "Contact",
+        "referenceId": "ContactHR2"
+      },
+      "FirstName": "Daniel",
+      "LastName": "Smith",
+      "Title": "Procurement Manager",
+      "Email": "daniel.smith@harborretail.example.com",
+      "Phone": "+1 555 010 0006",
+      "AccountId": "@HarborRef"
+    },
+    {
+      "attributes": {
+        "type": "Contact",
+        "referenceId": "ContactSM1"
+      },
+      "FirstName": "Lena",
+      "LastName": "Novak",
+      "Title": "Plant Engineer",
+      "Email": "lena.novak@summitmfg.example.com",
+      "Phone": "+1 555 010 0007",
+      "AccountId": "@SummitRef"
+    },
+    {
+      "attributes": {
+        "type": "Contact",
+        "referenceId": "ContactSM2"
+      },
+      "FirstName": "Carlos",
+      "LastName": "Mendes",
+      "Title": "Maintenance Supervisor",
+      "Email": "carlos.mendes@summitmfg.example.com",
+      "Phone": "+1 555 010 0008",
+      "AccountId": "@SummitRef"
+    }
+  ]
+}
