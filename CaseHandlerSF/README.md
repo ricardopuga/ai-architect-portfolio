@@ -70,6 +70,24 @@ uv run fastapi dev src/casehandlersf/api.py
 
 - `GET /health` returns `{"status": "ok"}`
 - `GET /cases/{key}` returns one Case, looked up by case number (`/cases/00001001`) or record Id (`/cases/500g800002HiYr3AAF`). It returns 404 if no Case matches and 502 if the Salesforce call fails (bad credentials, network error).
+- `POST /cases/{key}/comments` adds a CaseComment to that Case and returns 201 with the new comment:
+
+  ```bash
+  curl -X POST http://127.0.0.1:8000/cases/00001001/comments \
+    -H 'content-type: application/json' \
+    -d '{"body": "Called the customer back.", "is_published": false}'
+  ```
+
+  `body` is required: leading and trailing spaces are trimmed, and it must then be 1 to 4,000 characters long. `is_published` is optional and defaults to `false`, so the comment is internal; set it to `true` to show it to customers in portals. Any other field is rejected.
+
+  | Status | When |
+  |---|---|
+  | 201 | Comment created |
+  | 404 | No Case matches `key` |
+  | 422 | The request body is invalid; `detail` lists each problem field |
+  | 502 | Salesforce refused or failed the call; `detail` includes the Salesforce error code |
+
+  The "Run As" user needs Edit access to the Case. With only read access, Salesforce refuses the comment and the API returns 502 with `INSUFFICIENT_ACCESS_ON_CROSS_REFERENCE_ENTITY`.
 
 Interactive docs are at http://127.0.0.1:8000/docs.
 

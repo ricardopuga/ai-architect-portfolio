@@ -1,6 +1,7 @@
 """Salesforce access through simple-salesforce, using the OAuth Client Credentials flow."""
 
 import re
+from collections.abc import Callable
 from functools import cache
 from typing import Any
 
@@ -43,16 +44,30 @@ def _client() -> Salesforce:
     )
 
 
+def _call[T](action: Callable[[Salesforce], T]) -> T:
+    """Run `action` with the shared client, logging in again once if the token expired.
+
+    Retrying is safe for writes too: an expired session is rejected before anything is saved.
+    """
+    try:
+        return action(_client())
+    except SalesforceExpiredSession:
+        _client.cache_clear()
+        return action(_client())
+
+
 def find_case(key: str) -> dict[str, Any] | None:
     """Return the Case whose Id or CaseNumber is `key`, or None if there is none."""
     field = "Id" if _CASE_ID.fullmatch(key) else "CaseNumber"
     soql = format_soql(
         f"SELECT {CASE_FIELDS} FROM Case WHERE {field} = {{}} LIMIT 1", key
     )
-    try:
-        records = _client().query(soql)["records"]
-    except SalesforceExpiredSession:
-        # The cached access token expired; log in again once.
-        _client.cache_clear()
-        records = _client().query(soql)["records"]
+    records = _call(lambda sf: sf.query(soql)["records"])
     return records[0] if records else None
+
+
+def add_case_comment(case_id: str, body: str, is_published: bool) -> str:
+    """Create a CaseComment on the Case with record Id `case_id` and return its Id."""
+    fields = {"ParentId": case_id, "CommentBody": body, "IsPublished": is_published}
+    result = _call(lambda sf: sf.CaseComment.create(fields))
+    return result["id"]
