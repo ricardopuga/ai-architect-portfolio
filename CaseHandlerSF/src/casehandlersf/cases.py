@@ -19,7 +19,12 @@ COLUMN_ALIASES: dict[str, tuple[str, ...]] = {
 }
 
 CLOSED_STATUSES = frozenset({"closed", "resolved", "cancelled", "canceled"})
-KNOWN_PRIORITIES = {"critical": "Critical", "high": "High", "medium": "Medium", "low": "Low"}
+KNOWN_PRIORITIES = {
+    "critical": "Critical",
+    "high": "High",
+    "medium": "Medium",
+    "low": "Low",
+}
 UNKNOWN_PRIORITY = "Unknown"
 
 DATE_FORMATS = (
@@ -84,9 +89,12 @@ def _map_columns(path: Path, headers: list[str]) -> dict[str, str]:
                 break
     missing = sorted({"case_number", "created"} - mapping.keys())
     if missing:
-        expected = "; ".join(f"{field} (one of: {', '.join(COLUMN_ALIASES[field])})" for field in missing)
+        expected = "; ".join(
+            f"{field} (one of: {', '.join(COLUMN_ALIASES[field])})" for field in missing
+        )
         raise CaseFileError(
-            path, f"missing required columns: {expected}. Found columns: {', '.join(headers)}"
+            path,
+            f"missing required columns: {expected}. Found columns: {', '.join(headers)}",
         )
     return mapping
 
@@ -98,7 +106,7 @@ def _parse_date(value: str) -> date | None:
     for fmt in DATE_FORMATS:
         try:
             # Only the calendar date is kept, so a missing time zone doesn't matter.
-            return datetime.strptime(value, fmt).date()  # noqa: DTZ007
+            return datetime.strptime(value, fmt).date()
         except ValueError:
             continue
     return None
@@ -107,7 +115,11 @@ def _parse_date(value: str) -> date | None:
 def _clean_priority(value: str) -> str:
     # Salesforce often exports priorities like "P1 - High"; keep the last word.
     words = value.strip().split()
-    return KNOWN_PRIORITIES.get(words[-1].lower(), UNKNOWN_PRIORITY) if words else UNKNOWN_PRIORITY
+    return (
+        KNOWN_PRIORITIES.get(words[-1].lower(), UNKNOWN_PRIORITY)
+        if words
+        else UNKNOWN_PRIORITY
+    )
 
 
 def load_cases(path: Path) -> tuple[list[Case], int]:
@@ -129,7 +141,9 @@ def load_cases(path: Path) -> tuple[list[Case], int]:
             columns = _map_columns(path, reader.fieldnames)
 
             def get(row: dict[str, str], field: str) -> str:
-                return (row.get(columns[field]) or "").strip() if field in columns else ""
+                return (
+                    (row.get(columns[field]) or "").strip() if field in columns else ""
+                )
 
             try:
                 for row in reader:
@@ -148,7 +162,9 @@ def load_cases(path: Path) -> tuple[list[Case], int]:
                     )
             except csv.Error as e:
                 # line_num counts lines read successfully, so the bad record starts on the next one.
-                raise CaseFileError(path, f"invalid CSV near line {reader.line_num + 1}: {e}") from e
+                raise CaseFileError(
+                    path, f"invalid CSV near line {reader.line_num + 1}: {e}"
+                ) from e
     except FileNotFoundError as e:
         raise CaseFileError(path, "file not found") from e
     except IsADirectoryError as e:
@@ -185,4 +201,6 @@ def print_summary(path: Path, today: date | None = None) -> None:
     open_count = sum(case.is_open for case in cases)
     avg = average_open_age(cases, today)
     print(f"\nOpen cases: {open_count}")
-    print(f"Average age of open cases: {f'{avg:.1f} days' if avg is not None else 'n/a'}")
+    print(
+        f"Average age of open cases: {f'{avg:.1f} days' if avg is not None else 'n/a'}"
+    )

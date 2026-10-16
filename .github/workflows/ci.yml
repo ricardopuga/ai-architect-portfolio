@@ -1,0 +1,30 @@
+name: CI
+
+on: push
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: CaseHandlerSF
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: true
+          cache-dependency-glob: CaseHandlerSF/uv.lock
+
+      # Installs the Python version from .python-version and the locked dependencies.
+      - run: uv sync --locked
+
+      - name: Lint
+        run: uv run ruff check .
+
+      - name: Check formatting
+        run: uv run ruff format --check .
+
+      # No .env in CI, so the live Salesforce test is skipped.
+      - name: Test
+        run: uv run pytest
