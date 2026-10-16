@@ -1,0 +1,14 @@
+# Secrets: pass them at runtime with --env-file, never bake them into the image
+.env
+
+# Local environment and caches
+.venv
+__pycache__/
+*.py[oc]
+.pytest_cache
+.ruff_cache
+
+# Not needed to run the API
+tests/
+data/
+salesforce/

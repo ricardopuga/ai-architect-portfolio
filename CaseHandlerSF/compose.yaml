@@ -1,0 +1,8 @@
+services:
+  api:
+    build: .
+    image: casehandlersf
+    ports:
+      - "8000:8000"
+    # Salesforce credentials are passed at runtime; .env is never copied into the image.
+    env_file: .env

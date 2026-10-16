@@ -100,3 +100,26 @@ uv run fastapi dev src/casehandlersf/api.py
 Interactive docs are at http://127.0.0.1:8000/docs.
 
 Run the tests with `uv run pytest`. They use a fake Salesforce, except for one live test that runs only when `.env` exists.
+
+## Run in Docker
+
+The API can also run in a container. You need [Docker Desktop](https://www.docker.com/products/docker-desktop/) running and the same `.env` as above. From the project directory:
+
+```bash
+docker compose up -d --build   # build the image and start the API on port 8000
+docker compose down            # stop it
+```
+
+Or with plain Docker:
+
+```bash
+docker build -t casehandlersf .
+docker run -d --rm --name casehandlersf -p 8000:8000 --env-file .env casehandlersf
+docker stop casehandlersf
+```
+
+Check that it is up with `curl localhost:8000/health`, and read its output with `docker compose logs` (or `docker logs casehandlersf`). Port 8000 must be free, so stop any `fastapi dev` server first.
+
+`.env` is never copied into the image (see `.dockerignore`); the credentials are passed to the container when it starts. Docker reads `.env` more strictly than the app does: quotes, inline comments and trailing spaces become part of the value, so write each line as plain `KEY=value`.
+
+CI builds the image on every push to check that the Dockerfile still works. The image is not published anywhere.

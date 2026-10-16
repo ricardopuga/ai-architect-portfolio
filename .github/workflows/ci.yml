@@ -28,3 +28,12 @@ jobs:
       # No .env in CI, so the live Salesforce test is skipped.
       - name: Test
         run: uv run pytest
+
+  docker:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      # Only checks that the image builds; nothing is pushed.
+      - name: Build image
+        run: docker build -t casehandlersf CaseHandlerSF
