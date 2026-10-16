@@ -1,14 +1,70 @@
 # CaseHandlerSF
 
-A small command-line tool that reads a Salesforce case export (CSV), cleans the data, and prints a summary: how many cases there are per priority, how many are still open, and the average age of the open ones.
+Two tools for working with Salesforce Cases:
+
+- A command-line tool that reads a Salesforce case export (CSV), cleans the data, and prints a summary: how many cases there are per priority, how many are still open, and the average age of the open ones.
+- A small FastAPI app that looks up Cases live in Salesforce and adds comments to them.
 
 ## Requirements
 
-- [uv](https://docs.astral.sh/uv/) installed
+- [uv](https://docs.astral.sh/uv/). It installs Python 3.14 (from `.python-version`) for you.
+- For the HTTP API: a Salesforce org you can configure, and the [Salesforce CLI](https://developer.salesforce.com/tools/salesforcecli) (`sf`) to deploy the permission sets.
+- For running in a container: [Docker Desktop](https://www.docker.com/products/docker-desktop/).
 
-## Run it
+## Setup
 
-Clone the repo and run:
+All commands in this README run from the `CaseHandlerSF` directory.
+
+### 1. Install dependencies
+
+```bash
+uv sync
+```
+
+This creates `.venv` with the locked dependencies, including pytest and ruff. That is all the CLI needs. Steps 2 and 3 are only for the HTTP API.
+
+### 2. Configure Salesforce
+
+The API authenticates with the OAuth 2.0 Client Credentials flow, so the org needs:
+
+- An External Client App with the Client Credentials flow enabled, and a "Run As" (integration) user set on it. Note its consumer key and secret.
+- The two permission sets from `salesforce/`, deployed and assigned to that user:
+  - `CaseHandler_API_Read`: API access and read access to all Accounts, Contacts and Cases.
+  - `CaseHandler_API_Comment`: Read and Edit on Case (not Delete or Modify All), needed to add comments.
+
+```bash
+cd salesforce
+sf project deploy start --source-dir force-app --target-org <alias>
+sf org assign permset --name CaseHandler_API_Read --name CaseHandler_API_Comment \
+  --on-behalf-of <integration-username> --target-org <alias>
+cd ..
+```
+
+The integration user also needs edit access to the Case records through sharing: either the org-wide default for Case is Public Read/Write, or a sharing rule gives that access. Without it, Salesforce refuses comments and the API returns 502 with `INSUFFICIENT_ACCESS_ON_CROSS_REFERENCE_ENTITY`.
+
+Optionally, load the sample Accounts, Contacts and Cases (the live test expects Case `00001001` to exist):
+
+```bash
+sf data import tree --plan data/salesforce/sample-data-plan.json --target-org <alias>
+```
+
+### 3. Create `.env`
+
+Copy `.env.example` to `.env` (it is gitignored) and fill it in:
+
+```dotenv
+SF_DOMAIN_URL=https://yourdomain.my.salesforce.com
+SF_CLIENT_ID=<consumer key>
+SF_CLIENT_SECRET=<consumer secret>
+SF_API_VERSION=v65.0
+API_KEY=<random key, at least 32 characters>
+```
+
+- `SF_DOMAIN_URL` is your My Domain URL, not `login.salesforce.com`.
+- `API_KEY` protects the API, because it can write to your org. Generate one with `openssl rand -hex 32`. The server refuses to start if `API_KEY` is missing or shorter than 32 characters.
+- Write each line as plain `KEY=value`, with no quotes, inline comments or trailing spaces. Docker reads `.env` more strictly than the app does and would keep them as part of the value.
+
+## Run the CLI
 
 ```bash
 uv run casehandlersf data/sample_cases.csv
@@ -49,29 +105,17 @@ How the data is cleaned:
 
 If the file is missing, empty, not UTF-8, or lacks a required column, the tool prints a one-line error explaining what's wrong and exits.
 
-## HTTP API
+## Run the HTTP API
 
-A small FastAPI app serves Cases queried live from Salesforce with SOQL (via [simple-salesforce](https://github.com/simple-salesforce/simple-salesforce)).
-
-It authenticates with the OAuth 2.0 Client Credentials flow, so the org needs an External Client App with that flow enabled and a "Run As" user that can read Cases. Copy `.env.example` to `.env` (it is gitignored) and fill it in:
-
-```dotenv
-SF_DOMAIN_URL=https://yourdomain.my.salesforce.com   # your My Domain URL, not login.salesforce.com
-SF_CLIENT_ID=<consumer key>
-SF_CLIENT_SECRET=<consumer secret>
-SF_API_VERSION=v65.0
-API_KEY=<random key, at least 32 characters>
-```
-
-`API_KEY` protects the API, because it can write to your org. Generate one with `openssl rand -hex 32`. The server refuses to start if `API_KEY` is missing or shorter than 32 characters.
-
-Then start the server from the project directory (that's where `.env` is read from):
+The API queries Salesforce with SOQL via [simple-salesforce](https://github.com/simple-salesforce/simple-salesforce). After completing [Setup](#setup), start the development server (it reads `.env` from the current directory and reloads on code changes):
 
 ```bash
 uv run fastapi dev src/casehandlersf/api.py
 ```
 
-Every request to `/cases/...` must send the key in an `X-API-Key` header. Without the header, or with the wrong key, the API returns 401 and does not contact Salesforce. `/health` needs no key, so container health checks keep working. In the interactive docs, click **Authorize** and paste the key.
+Interactive docs are at http://127.0.0.1:8000/docs. Click **Authorize** there and paste the API key.
+
+Every request to `/cases/...` must send the key in an `X-API-Key` header. Without the header, or with the wrong key, the API returns 401 and does not contact Salesforce. `/health` needs no key, so container health checks keep working.
 
 ```bash
 curl -H "X-API-Key: $API_KEY" http://127.0.0.1:8000/cases/00001001
@@ -98,26 +142,41 @@ curl -H "X-API-Key: $API_KEY" http://127.0.0.1:8000/cases/00001001
   | 422 | The request body is invalid; `detail` lists each problem field |
   | 502 | Salesforce refused or failed the call; `detail` includes the Salesforce error code |
 
-  The "Run As" user needs Edit access to the Case. With only read access, Salesforce refuses the comment and the API returns 502 with `INSUFFICIENT_ACCESS_ON_CROSS_REFERENCE_ENTITY`. The sfdx project in `salesforce/` has a `CaseHandler_API_Comment` permission set that grants Read and Edit on Case (not Delete or Modify All). Deploy it and assign it alongside `CaseHandler_API_Read`:
+## Test
 
-  ```bash
-  cd salesforce
-  sf project deploy start --metadata PermissionSet:CaseHandler_API_Comment --target-org <alias>
-  sf org assign permset --name CaseHandler_API_Comment --on-behalf-of <integration-username> --target-org <alias>
-  ```
+Run the same checks as CI:
 
-  The permission set grants Edit on the Case object only. The user also needs edit access to the Case records through sharing: either the org-wide default for Case is Public Read/Write, or a sharing rule gives that access.
+```bash
+uv run ruff check .            # lint
+uv run ruff format --check .   # formatting (run `uv run ruff format .` to fix)
+uv run pytest                  # tests
+```
 
-Interactive docs are at http://127.0.0.1:8000/docs.
+The tests use a fake Salesforce and a fixed API key, so they need no credentials and never write to an org. Only `test_live_salesforce_lookup` talks to a real org, and only when `.env` exists in the current directory. It reads Case `00001001` from that org, so load the sample data first or the test fails. To skip it, run pytest from a directory without `.env` or deselect it:
 
-Run the tests with `uv run pytest`. They use a fake Salesforce, except for one live test that runs only when `.env` exists.
+```bash
+uv run pytest --deselect tests/test_api.py::test_live_salesforce_lookup
+```
 
-## Run in Docker
+CI (`.github/workflows/ci.yml`) runs on every push: lint, format check and tests (the live test is skipped because CI has no `.env`), plus a Docker image build.
 
-The API can also run in a container. You need [Docker Desktop](https://www.docker.com/products/docker-desktop/) running and the same `.env` as above. From the project directory:
+## Deploy
+
+There is no automated deploy pipeline. CI only checks that the image builds, and the image is not published to any registry, so you deploy the Salesforce metadata and run the container yourself.
+
+### Salesforce
+
+Deploy and assign the permission sets in each target org, as in [Configure Salesforce](#2-configure-salesforce). Re-run `sf project deploy start` after changing anything under `salesforce/force-app`.
+
+### API container
+
+The image runs `fastapi run` (production mode, no reload) on port 8000 as a non-root user. `.env` is never copied into the image (see `.dockerignore`); the credentials are passed to the container when it starts.
+
+With Docker Compose:
 
 ```bash
 docker compose up -d --build   # build the image and start the API on port 8000
+docker compose logs            # read its output
 docker compose down            # stop it
 ```
 
@@ -126,11 +185,10 @@ Or with plain Docker:
 ```bash
 docker build -t casehandlersf .
 docker run -d --rm --name casehandlersf -p 8000:8000 --env-file .env casehandlersf
+docker logs casehandlersf
 docker stop casehandlersf
 ```
 
-Check that it is up with `curl localhost:8000/health`, and read its output with `docker compose logs` (or `docker logs casehandlersf`). Port 8000 must be free, so stop any `fastapi dev` server first.
+Check that it is up with `curl localhost:8000/health`. Port 8000 must be free, so stop any `fastapi dev` server first.
 
-`.env` is never copied into the image (see `.dockerignore`); the credentials are passed to the container when it starts. Docker reads `.env` more strictly than the app does: quotes, inline comments and trailing spaces become part of the value, so write each line as plain `KEY=value`.
-
-CI builds the image on every push to check that the Dockerfile still works. The image is not published anywhere.
+To run it on another host, either build the image there from this directory, or tag it and push it to a registry you control, then run it with that host's own `.env` (or the same variables set by your platform). The API serves plain HTTP and the key travels in a header, so put a proxy that handles HTTPS in front of it before exposing it beyond your machine.
