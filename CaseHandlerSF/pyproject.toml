@@ -1,7 +1,7 @@
 [project]
 name = "casehandlersf"
 version = "0.1.0"
-description = "Add your description here"
+description = "Summarize Salesforce case exports and serve Cases from Salesforce over HTTP"
 readme = "README.md"
 authors = [
     { name = "Ricardo Puga", email = "48763402+ricardopuga@users.noreply.github.com" }
