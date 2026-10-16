@@ -4,6 +4,7 @@ from types import SimpleNamespace
 from typing import Any
 
 import pytest
+from conftest import AUTH
 from fastapi.testclient import TestClient
 from requests import ConnectionError
 from simple_salesforce.exceptions import (
@@ -167,7 +168,7 @@ def test_other_salesforce_errors_are_not_retried(
 
 
 # Through the HTTP API, with only the Salesforce client faked.
-client = TestClient(app)
+client = TestClient(app, headers=AUTH)
 
 
 def test_api_get_case_by_record_id(sf: FakeSalesforce) -> None:
