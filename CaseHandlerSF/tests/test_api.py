@@ -1,7 +1,9 @@
 from pathlib import Path
 
 import pytest
+from conftest import AUTH
 from fastapi.testclient import TestClient
+from pydantic import ValidationError
 from simple_salesforce.exceptions import (
     SalesforceAuthenticationFailed,
     SalesforceRefusedRequest,
@@ -10,7 +12,7 @@ from simple_salesforce.exceptions import (
 from casehandlersf import api
 from casehandlersf.api import app
 
-client = TestClient(app)
+client = TestClient(app, headers=AUTH)
 
 # Shaped like a record from simple-salesforce's query() result.
 FAKE_RECORDS = {
@@ -54,6 +56,41 @@ def test_health() -> None:
     response = client.get("/health")
     assert response.status_code == 200
     assert response.json() == {"status": "ok"}
+
+
+@pytest.mark.parametrize(
+    ("method", "path"),
+    [("GET", "/cases/00001001"), ("POST", "/cases/00001001/comments")],
+)
+@pytest.mark.parametrize(
+    "headers", [{}, {"X-API-Key": "wrong"}, {"X-API-Key": ""}], ids=str
+)
+def test_cases_need_api_key(
+    created_comments: list, method: str, path: str, headers: dict
+) -> None:
+    unauthenticated = TestClient(app, headers=headers)
+    response = unauthenticated.request(method, path, json={"body": "Hello"})
+    assert response.status_code == 401
+    assert response.json() == {"detail": "missing or invalid API key"}
+    assert created_comments == []
+
+
+def test_health_needs_no_api_key() -> None:
+    assert TestClient(app).get("/health").status_code == 200
+
+
+@pytest.mark.parametrize("value", [None, "too-short"])
+def test_app_refuses_to_start_without_valid_api_key(
+    monkeypatch: pytest.MonkeyPatch, value: str | None
+) -> None:
+    monkeypatch.chdir(Path(__file__).parent)  # away from the project's .env
+    if value is None:
+        monkeypatch.delenv("API_KEY")
+    else:
+        monkeypatch.setenv("API_KEY", value)
+    api._api_key.cache_clear()
+    with pytest.raises(ValidationError, match="api_key"), TestClient(app):
+        pass
 
 
 def test_get_case() -> None:

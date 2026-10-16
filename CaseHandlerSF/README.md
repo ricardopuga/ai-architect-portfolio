@@ -60,12 +60,21 @@ SF_DOMAIN_URL=https://yourdomain.my.salesforce.com   # your My Domain URL, not l
 SF_CLIENT_ID=<consumer key>
 SF_CLIENT_SECRET=<consumer secret>
 SF_API_VERSION=v65.0
+API_KEY=<random key, at least 32 characters>
 ```
+
+`API_KEY` protects the API, because it can write to your org. Generate one with `openssl rand -hex 32`. The server refuses to start if `API_KEY` is missing or shorter than 32 characters.
 
 Then start the server from the project directory (that's where `.env` is read from):
 
 ```bash
 uv run fastapi dev src/casehandlersf/api.py
+```
+
+Every request to `/cases/...` must send the key in an `X-API-Key` header. Without the header, or with the wrong key, the API returns 401 and does not contact Salesforce. `/health` needs no key, so container health checks keep working. In the interactive docs, click **Authorize** and paste the key.
+
+```bash
+curl -H "X-API-Key: $API_KEY" http://127.0.0.1:8000/cases/00001001
 ```
 
 - `GET /health` returns `{"status": "ok"}`
@@ -74,6 +83,7 @@ uv run fastapi dev src/casehandlersf/api.py
 
   ```bash
   curl -X POST http://127.0.0.1:8000/cases/00001001/comments \
+    -H "X-API-Key: $API_KEY" \
     -H 'content-type: application/json' \
     -d '{"body": "Called the customer back.", "is_published": false}'
   ```
@@ -83,6 +93,7 @@ uv run fastapi dev src/casehandlersf/api.py
   | Status | When |
   |---|---|
   | 201 | Comment created |
+  | 401 | `X-API-Key` is missing or wrong |
   | 404 | No Case matches `key` |
   | 422 | The request body is invalid; `detail` lists each problem field |
   | 502 | Salesforce refused or failed the call; `detail` includes the Salesforce error code |

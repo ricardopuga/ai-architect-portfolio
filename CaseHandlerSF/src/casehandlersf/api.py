@@ -1,10 +1,16 @@
 """HTTP API serving Cases queried live from Salesforce."""
 
+import secrets
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
 from datetime import datetime
+from functools import cache
 from typing import Annotated
 
-from fastapi import FastAPI, HTTPException
-from pydantic import BaseModel, ConfigDict, Field, StringConstraints
+from fastapi import APIRouter, Depends, FastAPI, HTTPException
+from fastapi.security import APIKeyHeader
+from pydantic import BaseModel, ConfigDict, Field, SecretStr, StringConstraints
+from pydantic_settings import BaseSettings, SettingsConfigDict
 from requests import RequestException
 from simple_salesforce.exceptions import SalesforceError
 
@@ -50,7 +56,37 @@ class CommentOut(BaseModel):
     is_published: bool
 
 
-app = FastAPI(title="CaseHandlerSF API")
+class ApiSettings(BaseSettings):
+    model_config = SettingsConfigDict(env_file=".env", extra="ignore")
+
+    # The API writes to the org, so require a long random key, e.g. `openssl rand -hex 32`.
+    api_key: SecretStr = Field(min_length=32)
+
+
+@cache
+def _api_key() -> str:
+    return ApiSettings().api_key.get_secret_value()
+
+
+@asynccontextmanager
+async def _lifespan(_app: FastAPI) -> AsyncIterator[None]:
+    _api_key()  # Refuse to start without a valid API_KEY rather than fail on the first request.
+    yield
+
+
+app = FastAPI(title="CaseHandlerSF API", lifespan=_lifespan)
+
+_api_key_header = APIKeyHeader(name="X-API-Key", auto_error=False)
+
+
+def require_api_key(key: Annotated[str | None, Depends(_api_key_header)]) -> None:
+    # Constant-time comparison, so response timing doesn't leak the key byte by byte.
+    if key is None or not secrets.compare_digest(key.encode(), _api_key().encode()):
+        raise HTTPException(status_code=401, detail="missing or invalid API key")
+
+
+# Every route under /cases needs the key; /health stays open for container checks.
+cases = APIRouter(prefix="/cases", dependencies=[Depends(require_api_key)])
 
 
 def _salesforce_failure(e: Exception) -> HTTPException:
@@ -78,13 +114,13 @@ def health() -> dict[str, str]:
     return {"status": "ok"}
 
 
-@app.get("/cases/{case_key}")
+@cases.get("/{case_key}")
 def get_case(case_key: str) -> CaseOut:
     """Look up a Case by CaseNumber (e.g. 00001001) or record Id (e.g. 500g800002HiYr3AAF)."""
     return CaseOut.model_validate(_get_case_record(case_key))
 
 
-@app.post("/cases/{case_key}/comments", status_code=201)
+@cases.post("/{case_key}/comments", status_code=201)
 def create_comment(case_key: str, comment: CommentIn) -> CommentOut:
     """Add a CaseComment to the Case with this CaseNumber or record Id."""
     case_id = _get_case_record(case_key)["Id"]
@@ -98,3 +134,6 @@ def create_comment(case_key: str, comment: CommentIn) -> CommentOut:
         body=comment.body,
         is_published=comment.is_published,
     )
+
+
+app.include_router(cases)
