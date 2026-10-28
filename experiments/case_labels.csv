@@ -1,0 +1,21 @@
+case,category,urgency,note
+Case01,outage,critical,tracking fails for all shipments
+Case02,software_defect,high,drivers re-scan manually as a workaround
+Case03,service_request,low,
+Case04,billing,medium,
+Case05,account_access,medium,
+Case06,equipment_fault,high,could be software_defect: the kiosk freezes at the card scan step
+Case07,software_defect,critical,lost lab results are a patient safety risk
+Case08,software_defect,medium,could be billing: the export bug affects billing
+Case09,service_request,low,
+Case10,service_request,low,
+Case11,outage,critical,two stores cannot take card payments
+Case12,software_defect,high,
+Case13,order_delivery,medium,
+Case14,billing,low,
+Case15,equipment_fault,medium,could be high: self-checkout degraded at one store
+Case16,equipment_fault,high,production reduced but running
+Case17,equipment_fault,high,could be software_defect: failed firmware upgrade
+Case18,equipment_fault,medium,could be high: a hydraulic leak may be a safety risk
+Case19,feedback,low,
+Case20,service_request,low,
