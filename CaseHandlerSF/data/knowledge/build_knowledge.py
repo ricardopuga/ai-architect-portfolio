@@ -44,22 +44,44 @@ def main() -> None:
     articles = [parse_article(p) for p in sorted(ARTICLES.glob("KA-*.md"))]
 
     with open(HERE / "knowledge.jsonl", "w", encoding="utf-8") as f:
-        for a in articles:
-            f.write(json.dumps(a, ensure_ascii=False) + "\n")
+        f.writelines(json.dumps(a, ensure_ascii=False) + "\n" for a in articles)
 
     with open(HERE / "knowledge_articles.csv", "w", newline="", encoding="utf-8") as f:
         writer = csv.writer(f)
-        writer.writerow(["ArticleNumber__c", "Title", "UrlName", "Summary", "Body__c",
-                         "ArticleType__c", "Category__c", "Plans__c", "Language"])
+        writer.writerow(
+            [
+                "ArticleNumber__c",
+                "Title",
+                "UrlName",
+                "Summary",
+                "Body__c",
+                "ArticleType__c",
+                "Category__c",
+                "Plans__c",
+                "Language",
+            ]
+        )
         for a in articles:
-            writer.writerow([a["article_number"], a["title"], a["url_name"], a["summary"],
-                             a["body"], a["article_type"], a["category"],
-                             ";".join(a["plans"]), "en_US"])
+            writer.writerow(
+                [
+                    a["article_number"],
+                    a["title"],
+                    a["url_name"],
+                    a["summary"],
+                    a["body"],
+                    a["article_type"],
+                    a["category"],
+                    ";".join(a["plans"]),
+                    "en_US",
+                ]
+            )
 
     with open(HERE / "case_article_map.csv", "w", newline="", encoding="utf-8") as f:
         writer = csv.writer(f)
         writer.writerow(["case_id", "article_number"])
-        pairs = sorted((c, a["article_number"]) for a in articles for c in a["related_cases"])
+        pairs = sorted(
+            (c, a["article_number"]) for a in articles for c in a["related_cases"]
+        )
         writer.writerows(pairs)
 
     print(f"{len(articles)} articles, {len(pairs)} case->article links")
