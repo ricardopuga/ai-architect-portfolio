@@ -1,0 +1,18 @@
+# Postgres with the pgvector extension, for storing chunk embeddings.
+# Start:  docker compose -f experiments/compose.yaml up -d
+# Stop:   docker compose -f experiments/compose.yaml down   (add -v to also delete the data)
+services:
+  db:
+    image: pgvector/pgvector:pg17
+    ports:
+      - "5432:5432"
+    environment:
+      # Local experiments only. Don't reuse this password anywhere real.
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: knowledge
+    volumes:
+      - pgdata:/var/lib/postgresql/data  # keeps the data when the container restarts
+
+volumes:
+  pgdata:
