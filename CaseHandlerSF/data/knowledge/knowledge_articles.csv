@@ -1,0 +1,1164 @@
+ArticleNumber__c,Title,UrlName,Summary,Body__c,ArticleType__c,Category__c,Plans__c,Language
+KA-0001,Lumora Workspace plans and limits,plans-and-limits,"The limits for each Lumora Workspace plan (storage, upload size, API rate, automations, connectors) in one table.","## Overview
+
+Use this table when a customer asks ""what does my plan include?"" or reports hitting a limit. Other articles link here so the numbers stay in one place.
+
+| Limit | Starter | Team | Business | Enterprise |
+|---|---|---|---|---|
+| Storage per workspace | 10 GB | 100 GB | 1 TB | Custom (from 5 TB) |
+| Max file upload (web) | 50 MB | 50 MB | 250 MB | 2 GB |
+| API requests per minute (per workspace) | n/a | 100 | 300 | 1,000 |
+| Active automation rules per workspace | 5 | 50 | 250 | 1,000 |
+| Automation runs per month | 1,000 | 25,000 | 250,000 | Unlimited (fair use) |
+| Data connector sync interval | n/a | 15 min | 5 min | 5 min (1 min on request) |
+| SSO (SAML / OIDC) | No | No | Yes | Yes |
+| SCIM provisioning | No | No | No | Yes |
+| Audit log retention | n/a | n/a | 1 year | 7 years |
+| Backup snapshot retention | 30 days | 30 days | 30 days | 90 days |
+| Custom domain | No | No | No | Yes |
+
+## Notes
+
+- Limits apply **per workspace**, not per user or per API token.
+- Customers can see current usage under **Settings > Workspace > Usage**.
+- To raise a limit, the customer upgrades their plan or, on Enterprise, contacts their Customer Success Manager. Support agents cannot raise limits themselves.",Reference,Account & Billing,Starter;Team;Business;Enterprise,en_US
+KA-0002,Contacting Lumora Support and how case priority is set,contacting-support-priorities,"Support channels by plan, how Urgent/High/Medium/Low priority is defined, and the first-response targets for each.","## Support channels
+
+| Plan | Channels | Hours |
+|---|---|---|
+| Starter | Help center, community forum, email | Business hours, best effort |
+| Team | Email, web form | Mon–Fri 08:00–20:00 ET |
+| Business | Email, web form, chat | 24×5 |
+| Enterprise | All above plus phone and named CSM | 24×7 for Urgent |
+
+## Priority definitions
+
+- **Urgent**: Production is down or unusable for most users, or payments/data integrity are affected, with no workaround. Examples: the mobile app crashes on launch for all users, the payment gateway is failing, invitation emails stop going out to everyone.
+- **High**: A major feature is broken or badly degraded and the workaround is painful. Examples: webhooks returning 500, exports coming out empty, sensitive data appearing in exports.
+- **Medium**: A feature misbehaves but a reasonable workaround exists, or the customer has a how-to question that blocks them.
+- **Low**: General questions, feature requests, cosmetic issues.
+
+Agents may change the priority the customer picked, and must add a case comment explaining why.
+
+## First-response targets (Business and Enterprise)
+
+| Priority | Business | Enterprise |
+|---|---|---|
+| Urgent | 2 hours | 30 minutes |
+| High | 4 hours | 2 hours |
+| Medium | 1 business day | 8 hours |
+| Low | 2 business days | 1 business day |
+
+## Before you escalate
+
+Attach the workspace ID, the affected user's email address, timestamps with timezone, and a HAR file for browser problems (see KA-0003).",Policy,Getting Help,Starter;Team;Business;Enterprise,en_US
+KA-0003,How to collect a HAR file and browser console logs,collect-har-console-logs,"Step-by-step instructions for capturing a HAR file and console output in Chrome, Edge, Firefox and Safari so Engineering can diagnose browser issues.","## When to ask for this
+
+For any problem in the web app that you cannot reproduce: slow pages, errors, buttons that don't respond, data not loading.
+
+## Chrome and Edge
+
+1. Open Lumora Workspace in the tab where the problem happens.
+2. Press **F12** (or **Cmd+Option+I** on Mac) and open the **Network** tab.
+3. Tick **Preserve log**, then click the clear button (🚫).
+4. Reproduce the problem.
+5. Right-click any request and choose **Save all as HAR with content**.
+6. Open the **Console** tab, right-click, and choose **Save as…**
+
+## Firefox
+
+1. Press **F12** and open **Network**. Tick **Persist Logs**.
+2. Reproduce the problem.
+3. Click the gear icon and choose **Save All As HAR**.
+
+## Safari
+
+1. Turn on **Develop** in **Settings > Advanced > Show features for web developers**.
+2. Choose **Develop > Show Web Inspector > Network**, tick **Preserve Log**, and reproduce.
+3. Click **Export**.
+
+## Privacy
+
+HAR files can contain session cookies. Ask customers to upload them through the secure attachment link on the case, never by email. Support deletes attachments 30 days after the case closes.
+
+## Supported browsers
+
+The latest two major versions of Chrome, Edge, Firefox and Safari. Internet Explorer and legacy Edge are not supported.",How-to,Getting Help,Starter;Team;Business;Enterprise,en_US
+KA-0004,Password reset email not received,password-reset-email-not-received,"Why password reset emails sometimes don't arrive (spam filtering, SSO enforcement, suppression list) and how to fix each cause.","## Symptoms
+
+A user requests a password reset from the sign-in page and gets no email, so they can't sign in.
+
+## Causes and resolution
+
+1. **Spam or quarantine filtering.** Reset emails come from `no-reply@mail.lumora.example`. Ask the user to check spam or junk, and ask their IT team to check the mail gateway quarantine. IT should allowlist the sending domain `mail.lumora.example`.
+2. **SSO is enforced.** If the workspace requires SSO, Lumora does not send reset emails, because the password is managed by the identity provider. The user should sign in with **Continue with SSO** and reset their password through their company IdP.
+3. **The address is on the suppression list.** After a hard bounce, Lumora stops sending to that address. In the Support Console, open the user and check **Email deliverability**. If it shows *Suppressed*, click **Remove from suppression list**, then have the user request the reset again.
+4. **Typo or a different account email.** Confirm the exact email on the user record. Plus-addressing (`name+tag@`) is treated as a separate address.
+5. **Rate limit.** The sign-in page sends at most 3 reset emails per address per hour. Ask the user to wait for the latest email and not keep clicking.
+
+## Still not working
+
+An Admin can send a reset link from **Settings > Members > ⋯ > Send password reset**. If that email doesn't arrive either, escalate to the Messaging team with the user's email address and the time of the attempt in UTC.
+
+## Related
+
+- KA-0005 Sign-in security policies: reset link expiry and lockout",Troubleshooting,Sign-in & Security,Starter;Team;Business;Enterprise,en_US
+KA-0005,Sign-in security policies: reset link expiry and account lockout,sign-in-security-policies,"How admins set password reset link lifetime, the failed-attempt threshold and lockout duration, and how to unlock a user.","## Defaults
+
+| Setting | Default | Configurable range | Plans |
+|---|---|---|---|
+| Password reset link lifetime | 60 minutes | 15 minutes – 24 hours | Enterprise |
+| Failed attempts before lockout | 5 | 3 – 10 | Business, Enterprise |
+| Lockout duration | 15 minutes | 15 minutes – 24 hours | Business, Enterprise |
+
+On Starter and Team the defaults apply and can't be changed.
+
+## Change the settings
+
+1. Sign in as a workspace **Owner** or **Admin**.
+2. Go to **Settings > Security > Sign-in policy**.
+3. Change **Reset link lifetime**, **Failed attempts before lockout**, and **Lockout duration**.
+4. Click **Save**. The new settings apply to the next sign-in attempt or reset request. Links that were already sent keep their original lifetime.
+
+## ""I was locked out for 24 hours after only 3 tries""
+
+That's not a bug. It means the workspace admin has set a strict policy (3 attempts, 24-hour lockout). Explain that their own admin controls this setting. The admin can unlock the account right away (see below).
+
+## Unlock a user
+
+**Settings > Members**, select the user, then **⋯ > Unlock account**. The user can sign in immediately. Support agents can also unlock a user from the Support Console after confirming the request with a workspace Admin.
+
+## Security guidance
+
+For reset links longer than 4 hours, we recommend turning on 2FA (KA-0006) so a forwarded or intercepted link can't be used on its own.",How-to,Sign-in & Security,Business;Enterprise,en_US
+KA-0006,Two-factor authentication code rejected during setup or sign-in,2fa-code-rejected,"Fixes for ""Invalid verification code"" when turning on or using 2FA, which is most often caused by the phone's clock being out of sync.","## Symptoms
+
+The user scans the QR code in their authenticator app, types the 6-digit code, and sees **Invalid verification code**. This can happen during setup or at sign-in.
+
+## Cause
+
+Lumora uses time-based one-time passwords (TOTP, 30-second window, with a tolerance of one window either side). The usual causes are:
+
+- **The phone's clock is wrong.** If it is more than about 60 seconds off, every code fails.
+- **An old QR code was scanned.** Each time the setup dialog opens it creates a new secret, so a code from a previous attempt won't work.
+- **The code was entered after it expired.**
+
+## Resolution
+
+1. On the phone, turn on automatic date and time:
+   - iOS: **Settings > General > Date & Time > Set Automatically**
+   - Android: **Settings > System > Date & time > Set time automatically**
+   - Google Authenticator on Android also has **⋮ > Settings > Time correction for codes > Sync now**.
+2. In the authenticator app, delete any old *Lumora* entries.
+3. In Lumora, cancel the setup dialog and start again at **Profile > Security > Two-factor authentication**, scanning the **new** QR code.
+4. Enter the code that is currently showing, not one that is about to expire.
+
+## Lost device
+
+The user signs in with one of their backup codes. If they have none, a workspace Admin can reset 2FA for them from **Settings > Members > ⋯ > Reset 2FA**. Support can only reset 2FA after verifying identity under the account recovery procedure.",Troubleshooting,Sign-in & Security,Starter;Team;Business;Enterprise,en_US
+KA-0007,Setting up SAML single sign-on,configure-saml-sso,"How to connect Lumora Workspace to a SAML 2.0 identity provider (Okta, Microsoft Entra ID, Google Workspace and others), with fixes for the most common setup errors.","## Before you start
+
+- You need Business or Enterprise, and the workspace **Owner** role.
+- Claim and verify your email domain first: **Settings > Security > Domains**. You verify it with a DNS TXT record.
+
+## Values to enter in your IdP
+
+| Field | Value |
+|---|---|
+| Entity ID / Audience URI | `https://<subdomain>.lumora.example/sso/saml/metadata` |
+| ACS (Reply) URL | `https://<subdomain>.lumora.example/sso/saml/acs` |
+| Single Logout URL (optional) | `https://<subdomain>.lumora.example/sso/saml/slo` |
+| NameID format | `emailAddress` |
+| Required attributes | `email`, `firstName`, `lastName` |
+
+## Steps in Lumora
+
+1. Go to **Settings > Security > Single sign-on > Add SAML connection**.
+2. Upload the IdP metadata XML, **or** paste the SSO URL, the IdP entity ID and the X.509 signing certificate.
+3. Click **Test connection** in a private browser window.
+4. When the test passes, choose the enforcement level: **Optional** or **Required for verified domains**.
+
+Keep at least one Owner account able to sign in with a password (""break-glass"") until you've confirmed SSO works.
+
+## Common errors
+
+| Error | Cause | Fix |
+|---|---|---|
+| `Audience mismatch` | The entity ID in the IdP doesn't match exactly | Copy the value again. It is case-sensitive and must have no trailing slash |
+| `Signature validation failed` | The certificate was rotated or the wrong one was pasted | Upload fresh IdP metadata |
+| `Assertion expired` | The IdP server's clock is off | Fix NTP on the IdP. Allowed skew is 3 minutes |
+| `User not provisioned` | Just-in-time provisioning is off and the user doesn't exist | Invite the user first, or turn on **JIT provisioning** |
+| `Email not in verified domain` | The user's email domain hasn't been claimed | Verify the domain under **Domains** |
+
+## OIDC
+
+OIDC setup is under **Add OIDC connection**. The redirect URI is `https://<subdomain>.lumora.example/sso/oidc/callback`.
+
+## Related
+
+- KA-0008 SSO logout does not fully end the session (known issue)",How-to,Sign-in & Security,Business;Enterprise,en_US
+KA-0008,Known issue: SSO logout does not fully end the Lumora session,known-issue-sso-logout-session,"After logging out through the identity provider, Lumora sessions and cached data can stay on the device. Workarounds are available, and a fix is planned for release 2026.11.1.","## Status
+
+**Open.** Engineering ticket ENG-4471. Fix planned for release **2026.11.1**.
+
+## Symptoms
+
+- A user logs out through their identity provider portal (IdP-initiated logout), but Lumora tabs that are already open keep working.
+- After logout, pressing Back or reopening the app shows cached project data until the page is refreshed.
+
+## Cause
+
+There are two separate problems:
+
+1. If the SAML connection has no **Single Logout URL**, Lumora never hears about the IdP logout. The Lumora session lasts until it times out on its own (12 hours by default).
+2. Even when Single Logout is set up, the web app's offline cache (service worker) isn't cleared on logout. This is the defect being fixed in 2026.11.1.
+
+## Workarounds
+
+1. Make sure Single Logout is configured in **both** the IdP and in Lumora (**Settings > Security > Single sign-on > Edit > Single Logout URL**). This ends the server-side session.
+2. Shorten **Settings > Security > Session lifetime** to as little as 1 hour.
+3. On shared or kiosk devices, turn on **Settings > Security > Disable offline cache**. Users lose offline access, but nothing is cached on the device.
+4. Users can sign out with **Profile > Sign out** in Lumora as well as in the IdP. That clears the local cache.
+
+## Customer messaging
+
+Tell customers that server-side sessions **are** ended when Single Logout is configured. The remaining risk is data cached in the browser on that device. Link the case to ENG-4471 so the customer is notified when the fix ships.",Known Issue,Sign-in & Security,Business;Enterprise,en_US
+KA-0009,"Workspace roles and permissions, and why an admin sees read-only options",roles-and-permissions,"What each role (Owner, Admin, Member, Guest, Viewer seat) can do, how project-level roles override workspace roles, and how to fix ""I should be admin but everything is read-only"".","## Roles
+
+| Role | Can do |
+|---|---|
+| **Owner** | Everything, including billing, security settings, SSO and deleting the workspace. A workspace has at least one Owner. |
+| **Admin** | Manage members, projects, integrations and automations. Can't manage billing or SSO. |
+| **Member** | Create and edit projects, tasks, forms and reports they have access to. |
+| **Guest** | Access only to projects they are invited to. Can't see the member directory. |
+| **Viewer seat** | Read-only everywhere and free. This is a *seat type*, not a role. |
+
+**Seat type takes priority over role.** A user on a Viewer seat is read-only even if their role says Admin.
+
+## Project-level roles
+
+Each project can set its own roles (Project manager, Editor, Commenter, Viewer). A workspace Admin is automatically Project manager on every project. A Member can be a Viewer on one project and an Editor on another.
+
+## ""I should have admin access but only see read-only options""
+
+Check these in order:
+
+1. **Seat type.** In **Settings > Members**, find the user. If **Seat** says *Viewer*, change it to *Full* (this needs a free paid seat).
+2. **Wrong workspace.** The user may belong to several workspaces and be an Admin in only one. They can switch with the workspace picker in the top-left corner.
+3. **Locked during billing.** If the subscription is past due, the workspace becomes read-only for everyone except Owners (see KA-0015).
+4. **Stale session.** Role changes take effect the next time the page loads. Ask the user to sign out and back in.
+5. **SCIM group mapping (Enterprise).** If roles come from the IdP through SCIM, a change made in Lumora is overwritten at the next sync. Change the user's group in the IdP instead.",Reference,Users & Permissions,Starter;Team;Business;Enterprise,en_US
+KA-0010,User invitation emails not being delivered,invitation-emails-not-arriving,"How to diagnose invitations that never arrive (domain restrictions, spam filtering, suppression list, seat limits) and how to send an invite link directly instead.","## Symptoms
+
+An Admin invites people from **Settings > Members > Invite**. The invitees never get the email, and the invite shows as *Pending*.
+
+## Check first: is this affecting everyone?
+
+If **no** invitations are arriving for **any** workspace, check the status page for an email delivery incident. If there is none, escalate as **Urgent** to the Messaging team. For a single workspace, work through the list below.
+
+## Causes and resolution
+
+1. **Domain restriction.** **Settings > Security > Allowed email domains** blocks invites to other domains *without showing an error*. Add the domain, or invite the user as a Guest.
+2. **Spam or quarantine.** Invitations come from `invites@mail.lumora.example`. Ask IT to allowlist `mail.lumora.example`. Microsoft 365 tenants with strict impersonation protection often quarantine these emails.
+3. **Suppression list.** If an earlier email to that address bounced, it is suppressed. Check **Email deliverability** on the pending invite in the Support Console and remove the suppression.
+4. **No seats left.** If every paid seat is in use, invites wait in *Pending — awaiting seat* and no email is sent. Add seats or free one up.
+5. **SSO with JIT provisioning.** If SSO is required and just-in-time provisioning is on, no invite is needed. Users can simply sign in with SSO.
+
+## Workaround: send the link directly
+
+On the pending invite, click **⋯ > Copy invite link** and send it through another channel. The link is valid for 7 days and works only for the invited email address.",Troubleshooting,Users & Permissions,Starter;Team;Business;Enterprise,en_US
+KA-0011,"Adding, updating and removing users in bulk",bulk-user-management,"Three ways to manage many users at once (CSV import, selecting several rows in the member list, and SCIM provisioning) and when to use each.","## Choose a method
+
+| Method | Plans | Best for |
+|---|---|---|
+| Select several rows in the member list | Team+ | Changing the role or seat for up to 500 users at once |
+| CSV import | Team+ | Onboarding or offboarding a large group in one go |
+| SCIM 2.0 provisioning | Enterprise | Keeping users in sync with your IdP automatically |
+
+## Member list (several rows)
+
+1. Go to **Settings > Members**.
+2. Tick the users, or use the filter and then **Select all matching**.
+3. Choose **Change role**, **Change seat**, **Deactivate** or **Remove**.
+
+## CSV import
+
+1. Go to **Settings > Members > Import > Download template**.
+2. Fill in the columns `email`, `first_name`, `last_name`, `role` (`admin`, `member` or `guest`), `seat` (`full` or `viewer`), `action` (`add`, `update`, `deactivate` or `remove`) and an optional `projects` column, separated by semicolons.
+3. Upload the file. Lumora shows a preview with row-level errors before anything changes.
+4. Confirm. You can import up to 5,000 rows per file. Invitations go out as each row is processed.
+
+## Deactivate or remove?
+
+- **Deactivate** frees the seat and keeps everything the user created assigned to them. You can reverse it.
+- **Remove** frees the seat and moves their open tasks to the person you choose. You can't reverse it.
+
+## SCIM
+
+On Enterprise, generate a token under **Settings > Security > SCIM** and enter it with the base URL `https://api.lumora.example/scim/v2` in your IdP. Users and group-to-role mappings then come from the IdP.",How-to,Users & Permissions,Team;Business;Enterprise,en_US
+KA-0012,Charged twice for a subscription,duplicate-card-charge,"How to tell an authorization hold, a proration charge, a second workspace and a true double charge apart, and how to issue a refund.","## Work out what the second charge is
+
+Open the customer in the Billing Console and compare the card statement with **Invoices** and **Payments**.
+
+| What the customer sees | Likely cause | Action |
+|---|---|---|
+| A small or matching amount marked *pending*, which disappears within 3–7 business days | A card **authorization hold** taken when the card was added or updated | Explain that it's a hold, not a charge. Nothing to refund. |
+| A second, smaller charge in the same month | **Proration** after adding seats or upgrading mid-cycle | Send the proration invoice and explain the line items. |
+| Two full charges, each with its own invoice number and workspace | The customer pays for **two workspaces** | Confirm with the customer. Offer to merge or cancel one (KA-0047). |
+| Two identical charges for the same invoice | A **true duplicate** caused by a payment retry | Refund one (below). |
+
+## Refund a true duplicate
+
+1. In the Billing Console, open the duplicate **payment** (not the invoice).
+2. Click **Refund > Full**, reason *Duplicate*.
+3. Refunds reach the card in 5–10 business days, depending on the bank.
+4. Add a case comment with the refund ID.
+
+Agents can refund duplicates without approval. Any other refund over $500 needs approval from a Billing Lead.
+
+## Related
+
+- KA-0013 Duplicate or revised invoices in billing history",Troubleshooting,Account & Billing,Starter;Team;Business;Enterprise,en_US
+KA-0013,Duplicate or revised invoices in billing history,duplicate-invoices,"Why the same invoice can appear twice in billing history (a voided original and its revision, or a separate proration invoice) and how to give accounting a clean record.","## Question
+
+""I see the same invoice twice in billing history. Will I be billed twice, and what should our accounting team use?""
+
+## Answer
+
+In most cases one of the two invoices is **void** and replaced by a **revised** invoice. Lumora creates a revision when billing details change after the invoice is issued, for example a new billing address, an added VAT/tax ID, or a change to the PO number.
+
+How to tell them apart in **Settings > Billing > Invoices**:
+
+- The original shows the status **Void** and the invoice number ends in `-V`.
+- The revision has the same base number with the suffix `-R1` and the status **Paid** or **Open**.
+- Only the revised invoice is charged.
+
+Other reasons for invoices that look alike:
+
+- A **proration invoice** for seats added in the middle of the cycle. It has a different number and a smaller amount.
+- **Two workspaces** with the same billing contact (see KA-0012).
+
+## For accounting
+
+- Turn on **Settings > Billing > Hide voided invoices** to remove voided invoices from the list.
+- Click **Export statement** to download a CSV that contains only valid invoices and credit notes.
+- If the customer needs the voided invoice removed from the record completely (for example, it was already sent to an ERP), Billing can issue a formal credit note. Escalate to the Billing queue.",FAQ,Account & Billing,Team;Business;Enterprise,en_US
+KA-0014,Billing address form shows validation errors,billing-address-validation-errors,"The billing address form checks the postal code, state/region and tax ID against the selected country. Here is how to clear errors on an address that is correct.","## Symptoms
+
+When the user saves the billing address, the form shows ""Please enter a valid address"" or highlights the postal code, even though the address is correct.
+
+## Causes and resolution
+
+1. **The country doesn't match the address.** The country field is filled in from the browser's locale. Check that it's right *before* entering the postal code. The postal code and region checks depend on the country.
+2. **Postal code format.**
+   - US ZIP: 5 digits or ZIP+4 (`12345-6789`).
+   - UK: include the space (`SW1A 1AA`).
+   - Canada: `A1A 1A1`.
+   - Ireland: Eircode is optional. Leave the field blank instead of typing `N/A`.
+3. **State or region is required.** For the US, Canada, Australia, India and Brazil, choose a value from the drop-down. Free text isn't accepted.
+4. **Tax ID format.** If a VAT/GST number is entered, it's checked against the relevant government service (VIES for EU numbers). Include the country prefix (`DE123456789`). If VIES is down, the form fails. Save without the tax ID and add it later.
+5. **PO box (US).** Allowed in address line 1. Make sure line 2 isn't filled with only spaces.
+6. **Browser autofill** sometimes adds invisible characters. Type the address by hand or paste it as plain text.
+
+## Agent workaround
+
+If the customer is still blocked, an agent can update the address in **Billing Console > Customer > Edit address** with **Skip validation** ticked. Add a case comment saying what was entered.",Troubleshooting,Account & Billing,Starter;Team;Business;Enterprise,en_US
+KA-0015,"Renewal reminders, the grace period and reactivating a lapsed subscription",renewal-reminders-grace-period,"When renewal and payment-failure emails are sent and to whom, what happens during the 14-day grace period, and how to restore access straight away.","## Who gets renewal emails?
+
+Only **billing contacts**: Owners plus anyone listed under **Settings > Billing > Billing contacts**. Admins and members don't get them. Most ""I never got a reminder"" reports turn out to be a billing contact who has left the company.
+
+## When are they sent?
+
+| Event | Emails |
+|---|---|
+| Annual plan renewing | 30 days and 7 days before |
+| Monthly plan renewing | No reminder. A receipt after each charge |
+| Payment fails | Right away, then on days 3, 7 and 12 |
+| Auto-renew turned off | 30, 7 and 1 day before expiry |
+
+## What happens when payment fails?
+
+1. **Days 0–14 (grace period):** Everything works. A banner is shown to Owners.
+2. **After day 14:** The workspace becomes **read-only** for everyone except Owners, who can still reach billing.
+3. **After day 60:** The workspace is suspended. Data is kept for 90 more days, then deleted.
+
+## Restore access
+
+An Owner updates the payment method under **Settings > Billing > Payment method** and clicks **Retry payment**. Access comes back within a minute of a successful charge.
+
+## If the customer had no warning
+
+- Check the billing contacts and the email suppression status (see KA-0004).
+- Agents can grant a **7-day courtesy extension** once per 12 months from the Billing Console (**Subscription > Extend grace**).",FAQ,Account & Billing,Starter;Team;Business;Enterprise,en_US
+KA-0016,Storage limits and usage alerts,storage-limits-and-alerts,"How storage is counted, who gets the 80% and 95% alerts, what stops working at 100%, and how to free up space.","## How storage is counted
+
+Storage counts every file attachment, every file version, form uploads and items in the trash. Task text, comments and report definitions don't count. See KA-0001 for the limit on each plan.
+
+Current usage: **Settings > Workspace > Usage > Storage**.
+
+## Alerts
+
+| Threshold | Who is notified | How |
+|---|---|---|
+| 80% | Owners and billing contacts | Email and in-app banner |
+| 95% | Owners, billing contacts and Admins | Email and a banner for all members |
+| 100% | Everyone | Error shown when uploading |
+
+**Known gap:** If storage goes from below 80% to 100% in one day (for example after a large bulk import), only the 100% message appears. A daily check that catches this is planned for 2026.11.
+
+Admins can add more people to these alerts: **Settings > Notifications > Workspace alerts > Storage**.
+
+## What happens at 100%
+
+New uploads and new file versions are blocked. Everything else, including viewing and downloading existing files, keeps working.
+
+## Free up space
+
+1. **Empty the trash.** Deleted files count until they are purged (30 days, or right away with **Empty trash**).
+2. **Limit file versions.** In **Settings > Files > Version history**, keep the last 10 versions instead of all of them.
+3. Use **Usage > Storage > Largest files** to find large files and delete or archive them.
+4. Archived projects still count. Export the project and delete it if it's no longer needed.
+
+To add capacity, upgrade the plan or buy storage packs (100 GB each, Team and above).",How-to,Files & Storage,Starter;Team;Business;Enterprise,en_US
+KA-0017,File upload size limits and how to upload large files,file-upload-size-limits,"Upload size limits by plan (50 MB, 250 MB or 2 GB) and the options for files above them.","## What is the maximum file size?
+
+| Plan | Web and mobile upload | API resumable upload |
+|---|---|---|
+| Starter | 50 MB | n/a |
+| Team | 50 MB | 50 MB |
+| Business | 250 MB | 1 GB |
+| Enterprise | 2 GB | 5 GB |
+
+Form file fields have their own limit, set by the form author (no more than the plan limit).
+
+## Can Support raise the limit for us?
+
+No. The limit is tied to the plan. Options:
+
+1. **Upgrade** to Business (250 MB) or Enterprise (2 GB).
+2. **Link instead of uploading.** Attach a file from a connected cloud drive (Google Drive, OneDrive, Dropbox, Box) using **Attach > From cloud storage**. Linked files don't count against storage or the size limit.
+3. **Use the API** for resumable uploads on Business and Enterprise (`POST /v2/files/uploads`, sent in 8 MB chunks).
+4. **Compress or split** the file (for example a ZIP archive of the images).
+
+## Upload fails below the limit
+
+- A corporate proxy or firewall may cap request size. Ask IT to allow `uploads.lumora.example`.
+- Executable files (`.exe`, `.bat`, `.sh`, `.msi`) are blocked on every plan.
+- Check that the workspace hasn't hit its storage limit (KA-0016).",FAQ,Files & Storage,Starter;Team;Business;Enterprise,en_US
+KA-0018,API rate limits and handling HTTP 429 responses,api-rate-limits,"How Lumora API rate limits are counted (per workspace, across all tokens and integrations), which response headers to read, and how to avoid 429 errors.","## How limits are counted
+
+Limits apply **per workspace per minute**, shared by **every** API token and installed integration in that workspace. This is the most common reason a customer says ""we're hitting the limit even though we're within it"": their own integration is sharing the allowance with other apps, such as the Salesforce connector, Zapier-style tools or a BI connector.
+
+| Plan | Requests per minute | Burst |
+|---|---|---|
+| Team | 100 | 20 |
+| Business | 300 | 50 |
+| Enterprise | 1,000 | 200 |
+
+Search endpoints (`/v2/search`) have a separate limit of 30 per minute on every plan.
+
+## Response headers
+
+Every response includes:
+
+- `X-RateLimit-Limit`: the workspace's allowance
+- `X-RateLimit-Remaining`: requests left in the current window
+- `X-RateLimit-Reset`: when the window resets, as Unix epoch seconds
+
+When the limit is exceeded, the API returns **429 Too Many Requests** with a `Retry-After` header in seconds.
+
+## Best practices
+
+1. Honor `Retry-After`, and use exponential backoff with jitter.
+2. Use **webhooks** instead of polling for changes (KA-0019).
+3. Use batch endpoints (`POST /v2/tasks/batch`, up to 100 items).
+4. Request only the fields you need with `?fields=`.
+
+## Investigating a complaint
+
+**Settings > API > Usage** shows requests per token and per integration for the last 7 days. Ask the customer for a screenshot. Usually one integration is using most of the allowance. Enterprise customers can buy a higher limit through their CSM.",Reference,API & Integrations,Team;Business;Enterprise,en_US
+KA-0019,Setting up webhooks and fixing delivery failures,webhooks-setup-troubleshooting,"How webhook registration, verification, signatures and retries work, and how to diagnose 500 errors and failed deliveries.","## How webhooks work
+
+1. Register an endpoint: **Settings > API > Webhooks > Add endpoint**, or `POST /v2/webhooks`.
+2. Lumora sends a **verification request** with `{""type"":""verification"",""challenge"":""...""}`. Your endpoint must reply `200` within 10 seconds with the `challenge` value in the body.
+3. Each event is a `POST` with a JSON body. It is signed in the `X-Lumora-Signature` header (HMAC-SHA256 of the raw body using the endpoint secret).
+4. If your endpoint returns anything other than 2xx, or takes longer than 10 seconds, Lumora retries 5 times over 24 hours with exponential backoff. After 24 hours of failures, the endpoint is **disabled**.
+
+## ""500 errors when setting up webhooks""
+
+First work out **who** is returning the 500:
+
+- **The customer's endpoint returns 500** (shown in **Webhooks > Endpoint > Delivery log**). The problem is in their code. Common causes:
+  - The verification `challenge` isn't handled, so their code fails trying to parse an event it doesn't expect.
+  - The signature is checked against *parsed and re-serialized* JSON instead of the raw request body.
+  - The handler does slow work before responding. Respond `200` first and process the event in the background.
+- **The Lumora API returns 500 to `POST /v2/webhooks`.** Usually the URL is invalid, isn't HTTPS, or points to a private IP address, and the API returns a 500 where it should return a 400. That is known defect ENG-4210. Check that the URL is public HTTPS with a valid certificate. If it still fails, escalate with the `X-Request-Id` from the response.
+
+## Re-enable a disabled endpoint
+
+Fix the endpoint, then click **Re-enable**. Choose **Replay failed events** to resend events from the last 72 hours.
+
+## Testing
+
+Use **Send test event** on the endpoint page. Customers can also point a temporary request-inspection URL at it to see the exact payload.",Troubleshooting,API & Integrations,Team;Business;Enterprise,en_US
+KA-0020,"Finding API documentation, code examples and reporting doc problems",api-documentation-guide,"Where the current (v2) API reference and examples live, why some old links return 404, and how to request missing examples.","## Where are the docs?
+
+- **API reference (v2, current):** `https://developers.lumora.example/v2/reference`
+- **Guides and recipes:** `https://developers.lumora.example/guides`
+- **OpenAPI spec:** `https://developers.lumora.example/v2/openapi.json`. Customers can import it into Postman or Insomnia to get a working example of every endpoint.
+- **SDKs:** official Python and JavaScript SDKs, each with an `examples/` folder.
+
+## Why do some links return 404?
+
+The v1 documentation was retired on **2026-08-01**, when the developer site moved to a new platform. Old `/docs/api/...` links should redirect, but some deep links to individual sections (anything with `#anchor`) and links inside older community posts don't. That is known issue DOC-311.
+
+Workaround: replace `/docs/api/` with `/v2/reference/` in the URL, or search the developer site.
+
+## Missing examples
+
+Every reference page has a **Was this page helpful? > Suggest an improvement** link that creates a ticket for the Developer Docs team. When a customer asks for examples:
+
+1. Point them to the OpenAPI spec and the SDK `examples/` folder for now.
+2. Log the request with the endpoint names on internal ticket DOC-REQ. Developer Docs prioritize by how many requests each endpoint gets.
+3. Close the case as **Resolved – Documentation request logged** and share the ticket number.
+
+## Reporting a broken link
+
+Ask for the page URL and the broken link. Log it against DOC-311. Fixes for broken links ship weekly.",FAQ,API & Integrations,Team;Business;Enterprise,en_US
+KA-0021,CSV export downloads an empty or incomplete file,csv-export-empty,"Why report or table exports sometimes contain only headers, or nothing at all, and how to get a complete export.","## Symptoms
+
+The user clicks **Export > CSV** on a report or table view. A file downloads, but it is empty, contains only the header row, or has fewer rows than shown on screen.
+
+## Causes and resolution
+
+1. **Too big for an immediate download.** Exports over **50,000 rows** run in the background, but older browser bookmarks still trigger the immediate download, which returns an empty file. Ask the user to choose **Export > CSV (email me when ready)**. They'll receive a download link valid for 7 days. The maximum is 1,000,000 rows per export.
+2. **Filters aren't applied the same way.** The on-screen view may include a temporary filter that the export doesn't use, or the other way round. Save the view first (**Save view**) and export from the saved view.
+3. **Field-level permissions.** Columns the user isn't allowed to see are left out. If *every* selected column is restricted, the file is empty. Check the user's project role (KA-0009).
+4. **Sensitive fields.** Fields marked *Sensitive* are removed unless the user has the **Export sensitive data** permission (KA-0022).
+5. **Opening in Excel.** Files are UTF-8. Excel on some systems shows one blank column when opening by double-click. Use **Data > From Text/CSV** in Excel, or choose **Export > CSV (Excel compatible)**, which adds a byte-order mark.
+
+## Still empty
+
+Collect the report URL, the time of export, the browser, and a HAR file (KA-0003), then escalate to Reports Engineering.",Troubleshooting,Reports & Data,Starter;Team;Business;Enterprise,en_US
+KA-0022,"Sensitive fields and data exports, including the scheduled-export known issue",sensitive-fields-in-exports,"How fields marked Sensitive are handled in exports, and a fixed defect (2026.08.1 to 2026.09.1) where scheduled exports included sensitive fields. Includes the security escalation steps.","## How it should work
+
+Admins mark a custom field as **Sensitive** in **Settings > Fields > Edit > Sensitive**. Sensitive fields:
+
+- Are masked in the UI (`••••`) for users without the **View sensitive data** permission.
+- Are **left out of all exports** (manual, scheduled and API bulk export) unless the person running the export has **Export sensitive data**.
+- Are recorded in the audit log whenever someone reveals or exports them.
+
+## Known issue (resolved)
+
+| | |
+|---|---|
+| Ticket | ENG-4388 |
+| Affected releases | 2026.08.1 to 2026.09.1 |
+| Fixed in | **2026.09.2** (released 2026-09-16) |
+| Scope | **Scheduled** report exports only. Manual and API exports were not affected |
+
+Scheduled exports created by a user with **Export sensitive data** kept including sensitive fields after the creator lost that permission, or when the schedule was handed to another owner.
+
+## If a customer reports sensitive data in an export
+
+Treat it as a possible data exposure. Set priority to at least **High**.
+
+1. Ask for the export file name, the report or schedule name, and the date it was received. **Don't** ask them to attach the file.
+2. Check the date. If it was before 2026-09-16 and the export was scheduled, it matches ENG-4388.
+3. Escalate to the **Security & Privacy** queue in every case. They decide whether the customer must be formally notified under the DPA.
+4. Recommend the customer delete any copies, review the schedule's recipients, and check who holds **Export sensitive data** under **Settings > Roles**.
+5. If the date is **after** the fix, escalate to Reports Engineering as a possible regression and mention ENG-4388.",Known Issue,Reports & Data,Business;Enterprise,en_US
+KA-0023,Reports over long date ranges take a long time to generate,slow-report-generation,"Why reports covering many months are slow and how to speed them up with summary mode, fewer calculated columns and cached snapshots.","## Symptoms
+
+A report over a long date range (for example 6 months of task data) takes 5 to 15 minutes, or times out.
+
+## Why it happens
+
+Detail reports read every row in the range and work out calculated fields for each one when the report runs. These are the main costs:
+
+- **Calculated and formula columns**, especially ones that look up data in other projects.
+- **Grouping by a text field** that has many different values.
+- **Including archived projects**.
+- **""Status history"" fields**, which read the full change log.
+
+## Speed it up
+
+1. **Turn on summary mode.** In the report, go to **Settings > Data source > Use daily summaries**. Summary mode reads pre-calculated daily totals. A 6-month report usually finishes in under 30 seconds. You lose row-level detail, but you can still drill into a single day.
+2. **Remove calculated columns you don't need,** or move them into a separate report.
+3. **Exclude archived projects** unless you need them.
+4. **Use snapshots.** Business and Enterprise can choose **Save as snapshot (refresh nightly)**. Viewers then open the cached version immediately.
+5. **Split the range.** Run one report per quarter and combine the exports.
+
+## When to escalate
+
+Escalate to Reports Engineering if a report in summary mode still takes more than 2 minutes, or one that used to be fast has become slow without any change. Include the report URL and the workspace ID.",Troubleshooting,Reports & Data,Team;Business;Enterprise,en_US
+KA-0024,Scheduling reports and choosing delivery destinations,scheduled-reports-delivery,"How to schedule recurring report delivery by email, Slack or (in beta) cloud storage, and how the schedule's timezone works.","## Create a schedule
+
+1. Open a saved report and click **Schedule**.
+2. Choose the frequency (daily, weekdays, weekly, monthly), the time, and the **timezone**.
+3. Choose the format: CSV, XLSX or PDF.
+4. Choose where to send it (see below), then click **Save**.
+
+## Destinations
+
+| Destination | Plans | Status |
+|---|---|---|
+| Email (up to 50 recipients) | Team+ | Generally available |
+| Slack or Microsoft Teams channel | Team+ | Generally available |
+| Cloud storage: Amazon S3, Google Drive, SharePoint | Business+ | **Beta** (since 2026.10.1) |
+
+### Joining the cloud storage beta
+
+An Owner turns it on under **Settings > Labs > Scheduled exports to cloud storage**. Each destination needs an integration connection (an S3 bucket with an IAM role ARN, or OAuth for Drive and SharePoint). Files are named `<report>_<YYYY-MM-DD>.<ext>`. Beta feedback goes to the in-app **Labs feedback** form.
+
+If a customer asked for this as a feature request, tell them about the beta, link their case to feature request FR-118, and close it as **Resolved – Available in beta**.
+
+## Timezone
+
+Schedules run in the timezone set **on the schedule**, not the viewer's timezone. Schedules created before 2026.08.2 had a defect where the timezone was saved as UTC. See KA-0025.
+
+## Who owns the schedule
+
+The schedule runs with the **owner's permissions**. If the owner is deactivated, the schedule pauses and Admins receive an email asking them to choose a new owner.",How-to,Reports & Data,Team;Business;Enterprise,en_US
+KA-0025,"How timezones work in reports, dashboards and scheduled reports",timezones-in-reports,"Explains why two users can see different times in the same report, how to set a fixed report timezone, and how to fix scheduled reports that run at the wrong hour.","## Default behavior
+
+Timestamps are stored in UTC and shown in **each viewer's profile timezone** (**Profile > Preferences > Timezone**). That's why users in New York and Lisbon see different times for the same task. Both are correct.
+
+Date-only fields (for example *Due date*) have no time and are the same for everyone.
+
+**Grouping by day** uses the viewer's timezone too. A task completed at 23:30 in New York counts as ""Tuesday"" for a New York viewer and ""Wednesday"" for a Lisbon viewer, so daily totals can differ between users.
+
+## Make a report consistent for everyone
+
+Open the report, go to **Settings > Timezone > Fixed**, and choose a timezone (for example *America/New_York*). All viewers, exports and schedules then use that timezone, and the report header shows it.
+
+Recommended for any report used in finance, SLA or compliance reviews.
+
+## Scheduled report runs at the wrong time
+
+1. Open the schedule and check its **Timezone** field.
+2. **Known defect (fixed in 2026.08.2):** Schedules created before that release saved the timezone as UTC, whatever was chosen. Opening the schedule shows the right timezone, but it runs in UTC. **Fix:** edit the schedule, change any setting and change it back, then **Save**. Saving rewrites the stored timezone.
+3. Daylight saving time: schedules follow the local time of their timezone, so a 09:00 New York schedule stays at 09:00 after the clocks change.
+
+## Dashboards
+
+Each dashboard widget can use the viewer's timezone or the dashboard's fixed timezone (**Dashboard settings > Timezone**).",Reference,Reports & Data,Starter;Team;Business;Enterprise,en_US
+KA-0026,Dashboard widget shows old or incorrect data,dashboard-widget-stale-data,"How to fix a dashboard widget showing figures from weeks or months ago (fixed date ranges, paused snapshots, cache, a broken data source).","## Symptoms
+
+A widget shows numbers that are clearly out of date, for example revenue from two months ago, while other widgets on the same dashboard are current.
+
+## Causes and resolution
+
+1. **Fixed date range.** The widget's filter is set to absolute dates (for example *1 Jul – 31 Jul*) instead of a relative range. Edit the widget, go to **Filters > Date**, and choose a relative option such as **This month** or **Last 30 days**. This is the most common cause.
+2. **The source report is a paused snapshot.** If the widget's source report uses **Save as snapshot**, the widget shows the last snapshot. Snapshots pause when the report owner is deactivated. Open the source report and check **Last refreshed**. Assign a new owner or switch to live data.
+3. **Data connector stopped syncing.** If the data comes from an external source (for example a billing system through a connector), check **Settings > Integrations > [connector] > Sync log** (see KA-0030).
+4. **Cache.** Widgets are cached for up to 15 minutes. Click **⋯ > Refresh** on the widget. A widget that is still out of date after refreshing isn't a cache problem.
+5. **Wrong source report.** After a dashboard is duplicated, widgets still point to the *original* report. Check **Edit widget > Source**.
+
+## Escalation
+
+If none of these apply, escalate to Reports Engineering with the dashboard URL, the widget name, the value expected, and the value shown.",Troubleshooting,Reports & Data,Starter;Team;Business;Enterprise,en_US
+KA-0027,Lumora Workspace is slow or pages take a long time to load,slow-performance,"A checklist for slowness reports (status page, network, browser, workspace size) and what information to collect before escalating.","## Step 1: Is it an incident?
+
+Check `status.lumora.example` and the internal incident channel. If there is an active incident, link the case to it and send the customer the status page link.
+
+## Step 2: Narrow it down
+
+Ask:
+
+- **When?** Slowness at the same time every day (for example 2–4 PM ET) points to network congestion on the customer's side, or to heavy automations or syncs scheduled for that time.
+- **Who?** One user, one office, or everyone?
+- **Where?** Everywhere in the app, or only certain pages (large boards, reports, search)?
+
+## Step 3: Customer-side checks
+
+1. Open `https://lumora.example/speedtest`, which measures latency to the nearest Lumora region.
+2. Try a private browser window with extensions turned off. Ad blockers and some security extensions slow down the app considerably.
+3. Make sure the corporate proxy allows WebSockets to `rt.lumora.example`. Without them the app falls back to slower polling (KA-0029).
+4. Check the browser is supported and the device has at least 8 GB of RAM if it opens boards with thousands of cards.
+
+## Step 4: Workspace-side checks (agent)
+
+In the Support Console, open **Workspace > Health**:
+
+- **Automation runs per hour.** Bulk automations scheduled at a fixed time can slow down that workspace. Suggest spreading them out.
+- **Connector syncs.** Large full syncs can be moved to off-peak hours.
+
+## Step 5: Escalate with data
+
+Include the workspace ID, the affected users, time windows **with timezone**, speed test results, and a HAR file captured while the app was slow (KA-0003).",Troubleshooting,Performance,Starter;Team;Business;Enterprise,en_US
+KA-0028,"Browser lags when filtering tables with 100,000+ rows",filtering-large-tables,"How to keep very large tables responsive with server-side filtering, saved views, indexed fields and paging.","## Symptoms
+
+Filtering or sorting a table view with more than about 100,000 rows makes the browser freeze for several seconds, or shows ""Page unresponsive"".
+
+## Why it happens
+
+By default, table views load up to 100,000 rows into the browser so that quick filters respond immediately. Above that size, filtering in the browser uses a lot of memory and CPU, especially with formula columns.
+
+## Resolution
+
+1. **Turn on server-side filtering.** In the view, go to **View settings > Performance > Filter on server**. Filters and sorts then run on Lumora's servers and only one page of results (500 rows) is loaded. This is the main fix.
+2. **Filter on indexed fields.** Status, Assignee, Created date, Due date, Project and any custom field with **Indexed** ticked (**Settings > Fields > Edit**) filter much faster. Business includes up to 20 indexed custom fields, Enterprise up to 100.
+3. **Use saved views** with the filters already set, so the full table never loads.
+4. **Hide formula columns** you don't need in that view.
+5. **Archive old rows.** Moving completed items older than 12 months to an archive table can make the main table much smaller.
+
+## Notes
+
+- From release 2026.11, server-side filtering turns on automatically above 50,000 rows.
+- If the problem continues with server-side filtering on, collect a HAR file and a browser performance profile and escalate to Frontend Engineering.",Troubleshooting,Performance,Team;Business;Enterprise,en_US
+KA-0029,Real-time collaboration changes appear with a delay,realtime-collaboration-delay,Changes from other users showing up about 30 seconds late almost always means WebSockets are blocked and the app has fallen back to polling. Here is how to confirm and fix it.,"## Symptoms
+
+When several people edit the same board, document or task at once, each person's changes reach the others about **30 seconds** late instead of immediately. Users may also see edit conflicts.
+
+## Cause
+
+Lumora sends live updates over a WebSocket connection to `wss://rt.lumora.example`. If something on the network blocks or breaks WebSockets, the app quietly falls back to **polling every 30 seconds**. That matches the delay users describe. Common culprits:
+
+- A corporate proxy or secure web gateway that doesn't support WebSocket upgrades, or that inspects TLS traffic.
+- A firewall that closes idle connections after a short time.
+- Browser extensions (privacy or ad-blocking tools).
+
+## Confirm
+
+1. In the app, open **Help > Connection diagnostics**. It shows **Live updates: Connected (WebSocket)** or **Fallback (polling)**.
+2. Or, in the browser DevTools **Network** tab, filter by **WS** and look for a connection to `rt.lumora.example`.
+
+## Fix
+
+Send this to the customer's IT team:
+
+- Allow WebSocket (HTTP Upgrade) traffic to `rt.lumora.example` on port 443.
+- Exclude `*.lumora.example` from TLS inspection.
+- Set the idle timeout for these connections to at least 120 seconds. The app sends a heartbeat every 45 seconds.
+
+## If WebSockets are connected and it's still slow
+
+Collect the diagnostics output and a HAR file, and escalate to the Realtime team with the workspace ID and the object that was being edited.",Troubleshooting,Performance,Starter;Team;Business;Enterprise,en_US
+KA-0030,Data connector sync is slower than usual,data-connector-sync-delays,"How to diagnose data connectors that take 30+ minutes to sync instead of the usual interval (source throttling, full resyncs, errors, plan interval).","## Expected interval
+
+Incremental syncs run every **15 minutes on Team** and **5 minutes on Business and Enterprise** (KA-0001). A sync normally takes under a minute for a few thousand changed records.
+
+## Diagnose
+
+Open **Settings > Integrations > [connector] > Sync log**. For each run it shows the start time, duration, records processed, and any warnings.
+
+| What the sync log shows | Meaning | Action |
+|---|---|---|
+| `Throttled by source (429)` | The *external system* is limiting Lumora's requests | Raise the API limit in the source system, or reduce the fields being synced |
+| `Full resync in progress` | A schema change or a re-authorization started a full resync | Wait. Incremental syncs resume afterwards. Large sources can take hours |
+| Runs are skipped or overlap | The previous sync hadn't finished when the next was due | Reduce the objects or fields synced, or ask for a longer interval |
+| `Auth error` | The connection's credentials expired | Reconnect (see KA-0031 for Salesforce) |
+| Nothing unusual, but runs are long | Possibly a backlog on Lumora's side | Check the status page, then escalate |
+
+## Reduce sync volume
+
+- Under **Connector > Objects**, turn off objects you don't use.
+- Under **Connector > Filters**, sync only active records, for example `Status != Closed`.
+- Avoid formula or rollup fields in the source system that change on every record each night. They make every record look modified.
+
+## Escalate
+
+Include the connector type, the workspace ID, and a screenshot or export of the sync log covering the slow period.",Troubleshooting,API & Integrations,Team;Business;Enterprise,en_US
+KA-0031,Salesforce connector keeps disconnecting,salesforce-connector-disconnects,"Why the Lumora–Salesforce connector loses its connection (refresh token policy, the connecting user's session or password, IP restrictions, API limits) and how to make it stable.","## Symptoms
+
+The Salesforce connector shows **Disconnected — reauthorization required** every few hours or days. Syncs stop until someone reconnects it.
+
+## Causes and resolution
+
+1. **Refresh token policy in Salesforce.** In Salesforce Setup, go to **Connected Apps OAuth Usage > Lumora Workspace > Manage > Edit Policies**. Set **Refresh Token Policy** to *Refresh token is valid until revoked*. If it's set to ""Expire refresh token after X hours"", the connector disconnects on that schedule. This is the most common cause.
+2. **The connecting user's password changed or they were deactivated.** The connector runs as the Salesforce user who authorized it. Use a dedicated **integration user** whose password never expires.
+3. **IP restrictions.** If **Permitted Users** is set to *Admin approved users are pre-authorized* or IP relaxation is set to *Enforce IP restrictions*, allow Lumora's outbound IPs (listed at `https://lumora.example/ips`) on the integration user's profile, or set **IP Relaxation** to *Relax IP restrictions* for the Lumora connected app.
+4. **Salesforce API limit reached.** When the org hits its daily API limit, Salesforce rejects the calls. Lumora shows this as a disconnect. Check **Setup > Company Information > API Requests, Last 24 Hours**.
+5. **Sandbox refresh.** Refreshing a sandbox removes all OAuth grants. Reconnect afterwards.
+6. **Too many tokens.** Salesforce allows 5 refresh tokens per user per connected app. Authorizing more than that silently revokes the oldest one. Don't share one integration user across several Lumora workspaces.
+
+## Reconnect
+
+**Settings > Integrations > Salesforce > Reconnect**, signed in as the integration user. Field mappings are kept.",Troubleshooting,API & Integrations,Business;Enterprise,en_US
+KA-0032,Google Calendar two-way sync isn't working,google-calendar-sync,"How to fix Lumora events and task due dates not appearing in Google Calendar, or Google events not appearing in Lumora.","## How the sync works
+
+- Each user connects their own Google account under **Profile > Integrations > Google Calendar**.
+- **Lumora → Google:** tasks with a due date and time, and Lumora events, are written to one chosen calendar (by default a new calendar called *Lumora*).
+- **Google → Lumora:** events from the calendars you tick show up on your Lumora calendar view.
+- Changes usually sync within 2 minutes.
+
+## Troubleshooting
+
+1. **Looking at the wrong calendar.** Lumora items go to the *Lumora* calendar, not the user's primary calendar. In Google Calendar, make sure the *Lumora* calendar is visible (ticked in the left sidebar).
+2. **Tasks without a time.** Tasks with only a due date are added as all-day events only if **Sync all-day tasks** is on.
+3. **Google calendars not ticked.** Under **Profile > Integrations > Google Calendar > Calendars to show**, tick the calendars that should appear in Lumora.
+4. **Permission not granted.** If the user unticked calendar permissions on Google's consent screen, the sync works in only one direction. Disconnect, reconnect, and grant every requested permission.
+5. **Google Workspace admin restrictions.** The customer's Google admin may block third-party apps. They need to allow *Lumora Workspace* under **Admin console > Security > API controls > App access control**.
+6. **Token revoked.** A password change or Google security review can revoke access. The integration page then shows **Reconnect required**.
+
+## Escalate
+
+If the integration shows **Connected** and the steps above don't help, collect the user's email, an example item (its title and time, with timezone), and the direction of sync that fails. Escalate to the Integrations team.",Troubleshooting,API & Integrations,Team;Business;Enterprise,en_US
+KA-0033,Payments failing through a connected payment gateway in Lumora Forms,forms-payment-gateway-failures,"Steps to diagnose payment forms that stop processing payments (rotated keys, webhook secret, currency, gateway outage). This is always handled as Urgent.","## Priority
+
+Failed payments mean the customer is losing revenue. Set the case to **Urgent**.
+
+## Step 1: Rule out an outage
+
+- Check `status.lumora.example` for **Forms** or **Payments**.
+- Ask the customer to check their payment provider's own status page.
+
+## Step 2: Check the payment log
+
+In the form, open **Settings > Payments > Transaction log**. Each attempt shows the gateway's response code.
+
+| Error in log | Cause | Fix |
+|---|---|---|
+| `authentication_failed` / `invalid_api_key` | The API key was rotated or revoked in the gateway dashboard | Reconnect the gateway: **Settings > Integrations > Payments > Reconnect** |
+| `webhook_signature_invalid` | The webhook signing secret changed | Copy the new secret into Lumora's payment settings |
+| `currency_not_supported` | The form's currency changed to one the merchant account doesn't support | Change the form currency back, or enable the currency in the gateway |
+| `account_restricted` | The gateway has restricted the merchant account (verification, compliance) | The customer must resolve it with their payment provider |
+| `test_mode_key_in_live` | A test key was entered on a live form | Use the live key |
+| No entries at all | The form doesn't reach the payment step | Check the payment field's conditional logic |
+
+## Step 3: Tell the customer
+
+- Payments are processed by the customer's own payment provider. Lumora doesn't hold card data.
+- Failed submissions are saved as **Unpaid**. After the fix, the customer can send each submitter a payment link from **Responses > Unpaid > Send payment link**.
+
+## Escalate
+
+If the log shows `gateway_timeout` or Lumora errors (`5xx`), escalate to the Forms team on-call with the form ID and the transaction IDs.",Troubleshooting,Forms,Business;Enterprise,en_US
+KA-0034,How form auto-save and drafts work,form-autosave-drafts,"When Lumora Forms saves a draft, why answers can be lost after a disconnect, and how form authors turn on reliable drafts.","## Does Lumora save my form answers automatically?
+
+It depends on how the form author set it up.
+
+| Setting (on the form) | Behavior |
+|---|---|
+| **Save drafts: Off** (default for public forms) | Nothing is saved until **Submit** |
+| **Save drafts: This device** | Answers are saved in the browser every 15 seconds and when you leave a field. They come back if you reopen the form on the same device and browser |
+| **Save drafts: Account** (signed-in respondents only) | Answers are saved to the server every 15 seconds and are available on any device |
+
+## Why were answers lost after a disconnect?
+
+- Drafts were **off** for that form.
+- With **This device**, the browser was in private or incognito mode, or a privacy setting cleared site data when the browser closed.
+- With **Account**, the connection dropped before the next 15-second save. You can lose up to 15 seconds of typing.
+- File uploads aren't kept in drafts saved to the device. They have to be uploaded again.
+
+## For form authors
+
+1. Open the form, then **Settings > Responses > Save drafts**.
+2. Choose **Account** for internal forms where respondents sign in, or **This device** for public forms.
+3. Turn on **Warn before leaving with unsaved answers**.
+
+## Offline
+
+Lumora's mobile apps keep form answers offline and submit them when the connection returns. The web app doesn't submit while offline.",FAQ,Forms,Starter;Team;Business;Enterprise,en_US
+KA-0035,Custom field can't be deleted,delete-custom-fields,"Why Delete does nothing or fails for a custom field (it's used in automations, reports, forms, formulas or integrations) and how to find and remove those references.","## Symptoms
+
+In **Settings > Fields**, the user clicks **Delete** on a custom field. Nothing happens, or a short message appears: ""This field can't be deleted.""
+
+## Cause
+
+A field can't be deleted while anything still uses it:
+
+- Automation rule conditions or actions
+- Report filters, columns or groupings, and dashboard widgets
+- Form questions mapped to the field
+- Formula fields that refer to it
+- Integration field mappings (for example the Salesforce connector)
+- Required-field rules on a project
+
+**Known UI defect (ENG-4502):** the message that lists these references sometimes closes straight away, so it looks as though nothing happened. Fix due in 2026.11.1.
+
+## Resolution
+
+1. In **Settings > Fields**, open the field and go to the **Usage** tab. It lists every reference with a link.
+2. Remove or change each reference: edit the automation, report or form, or remap the integration field.
+3. Return to the field and click **Delete** again.
+
+## Alternative: hide instead of delete
+
+If the field is used in a lot of places, choose **Archive field**. It disappears from forms, views and pickers, but past values and references are kept. You can restore an archived field at any time.
+
+## After deletion
+
+Deleted fields can be restored for 30 days (**Settings > Fields > Deleted**), along with their values.",Troubleshooting,Forms,Team;Business;Enterprise,en_US
+KA-0036,Automation rule limits and what counts as a run,automation-rule-limits,"How many automation rules each plan allows, how runs are counted, and what happens when a limit is reached.","## How many rules can we create?
+
+The limit is on **active** rules per workspace. You can keep any number of inactive (paused) rules.
+
+| Plan | Active rules | Runs per month | Actions per rule |
+|---|---|---|---|
+| Starter | 5 | 1,000 | 3 |
+| Team | 50 | 25,000 | 10 |
+| Business | 250 | 250,000 | 25 |
+| Enterprise | 1,000 | Unlimited (fair use) | 50 |
+
+## What counts as a run?
+
+One run is one rule triggering once, however many actions it carries out. Some examples:
+
+- A rule that runs when a task's status changes, and posts a comment and sends an email, counts as **1 run**.
+- A scheduled rule that updates 200 tasks counts as **200 runs** (one per task).
+- Runs where the conditions aren't met **don't** count.
+
+## What happens at the limit?
+
+- **Active rules:** You can't activate another rule until one is paused.
+- **Monthly runs:** Owners get an email at 80% and 100%. At 100%, rules stop running until the next billing month. Paid plans can buy run packs (+25,000) under **Settings > Billing > Add-ons**.
+
+## Other limits
+
+- Rules can call each other up to 10 levels deep. After that, the chain is stopped to prevent loops.
+- Each scheduled rule can process up to 5,000 items per run.
+- See usage under **Settings > Automations > Usage**.",FAQ,Automation,Starter;Team;Business;Enterprise,en_US
+KA-0037,Recurring tasks are created on weekends,recurring-tasks-weekends,"The difference between ""Daily"" and ""Every weekday"" recurrence, how to use custom working days, and a fixed defect where the weekend-skip setting was ignored after a daylight saving change.","## Symptoms
+
+A task set to repeat daily is created on Saturdays and Sundays, even though the user expected weekends to be skipped.
+
+## Causes and resolution
+
+1. **""Daily"" includes weekends.** This is expected. In the task, go to **Repeat** and choose **Every weekday (Mon–Fri)** instead of **Daily**.
+2. **Working days aren't set up.** For other working weeks (for example Sunday to Thursday), an Admin sets **Settings > Workspace > Working days**. Then choose **Repeat > Every working day**.
+3. **Holidays.** To skip public holidays as well, add a holiday calendar under **Settings > Workspace > Holidays** and tick **Skip holidays** on the recurrence.
+4. **Known defect (fixed in 2026.09.3):** recurrences set to *Every weekday* that were created before a daylight saving change could produce one task on the weekend. The cause was the next date being calculated in UTC. After the fix, open each affected recurrence and **Save** it again. That recalculates the schedule.
+
+## Clean up tasks created by mistake
+
+Filter the project by **Created by: Recurrence** and **Due date: is weekend**, select the tasks, and delete them. Deleting one occurrence doesn't affect the rest of the series.",Troubleshooting,Tasks & Projects,Starter;Team;Business;Enterprise,en_US
+KA-0038,Notification preferences go back to the defaults,notification-preferences-not-saving,"Why notification settings seem to reset after signing out (device settings versus account settings, workspace-enforced settings, SCIM) and how to make them stick.","## Symptoms
+
+A user changes their notification preferences, signs out, signs back in, and finds the old settings again.
+
+## Causes and resolution
+
+1. **Device setting versus account setting.** **Desktop push** and **sound** settings are stored *in the browser*. Clearing site data on sign-out, using private mode, or switching browsers resets them. Email and in-app settings are stored on the account and follow the user everywhere. Ask which settings reset.
+2. **Settings enforced by the workspace.** Admins can lock certain notifications (for example *Mentions* and *Assigned to me*) under **Settings > Notifications > Enforced defaults**. Users can change them in the dialog, but the change is undone when they save. A padlock icon shows which settings are locked. **Known UI defect:** in 2026.10.1 the padlock doesn't show on the mobile web layout.
+3. **Notifications are set separately for each workspace.** Users in more than one workspace need to change their settings in each one. The selector is at the top of **Profile > Notifications**.
+4. **The change wasn't saved.** The dialog saves only when **Save changes** is clicked. Closing the panel discards changes.
+
+## Still resetting
+
+If the user's **account** settings (not device settings), for a setting that isn't locked, reset after signing in again, escalate to the Notifications team with the user's email, the setting, and the time of the change.",Troubleshooting,Notifications,Starter;Team;Business;Enterprise,en_US
+KA-0039,Email notifications show raw HTML tags,email-notifications-raw-html,"Why notification emails can show tags such as <b> or <p> as text (custom templates, automation emails, plain-text mail clients) and how to fix each.","## Symptoms
+
+Notification emails show tags like `<p>`, `<br>` or `<b>` as plain text instead of formatting.
+
+## Causes and resolution
+
+1. **Custom automation email with HTML typed into the plain-text box.** The **Send email** automation action has two editors, **Rich text** and **Plain text**. HTML typed into **Plain text** is sent as literal characters. Switch the action to **Rich text** and use the formatting toolbar, or paste the HTML with **Insert > HTML block**.
+2. **Field values that contain HTML.** When an email includes a field value (for example `{{task.description}}`) and that field holds HTML imported from another system, the HTML is escaped for safety. Use `{{task.description | rich}}` to show the formatting, or clean up the imported data.
+3. **Custom workspace email template (Enterprise).** If an Admin edited **Settings > Branding > Email templates** and saved it while the editor was in *Source* mode, the template may now be double-encoded. Click **Restore default template**, then make the changes again in the visual editor.
+4. **The mail client shows plain text only.** Some mail clients, and security gateways that remove HTML, show the plain-text version. That version shouldn't contain tags. If it does, it matches defect ENG-4530 (fix in 2026.11.1).
+
+## Escalate
+
+Ask the customer to forward an affected email **as an attachment** (.eml) so the headers are kept, and escalate to the Notifications team.",Troubleshooting,Notifications,Team;Business;Enterprise,en_US
+KA-0040,Known issue: iOS app crashes on launch in version 2.3.1,known-issue-ios-crash-2-3-1,"Lumora for iOS 2.3.1 crashed on launch for users with offline mode turned on. Fixed in 2.3.2, released 2026-07-15.","## Status
+
+**Resolved** in Lumora for iOS **2.3.2** (released 2026-07-15). Ticket MOB-982.
+
+## Symptoms
+
+- The iOS app closes straight after the splash screen.
+- Affects version **2.3.1** on iOS 17 and 18, but only for users who had **offline mode** turned on.
+
+## Cause
+
+A database migration in 2.3.1 failed on devices that already had offline data stored, and the app crashed every time it started.
+
+## Resolution
+
+1. Update to **2.3.2 or later** from the App Store.
+2. If the App Store doesn't offer the update yet, delete and reinstall the app. Offline data that hasn't synced will be lost. Data already synced is safe on the server.
+3. Users whose company manages iOS devices (MDM) may need IT to push the update.
+
+## Workaround if updating isn't possible
+
+Use the mobile web version at `https://app.lumora.example` in Safari until the update is installed.
+
+## Agent notes
+
+If a user still reports a crash on launch with 2.3.2 or later, this article doesn't apply. Ask for the app version, the iOS version, and the crash log (**Settings > Privacy & Security > Analytics & Improvements > Analytics Data**, entries starting with `Lumora`), then escalate to Mobile Engineering.",Known Issue,Mobile,Starter;Team;Business;Enterprise,en_US
+KA-0041,Known issue: layout breaks on iPad and Android tablets in landscape,known-issue-tablet-landscape-layout,"In the web app on tablets in landscape orientation, the sidebar overlaps the content and the toolbars are cut off. Workarounds are available, and a fix is planned for 2026.11.2.","## Status
+
+**Open.** Ticket FE-1290. Fix planned for release **2026.11.2**.
+
+## Symptoms
+
+When the Lumora **web app** is used in a tablet browser (Safari on iPad, Chrome on Android tablets) in **landscape** orientation:
+
+- The left sidebar overlaps the board or table instead of pushing it across.
+- The top toolbar is cut off, so filter and share buttons can't be reached.
+- Pinch zoom makes it worse.
+
+Portrait orientation and the native iPad app aren't affected.
+
+## Cause
+
+The responsive layout treats screens between 1024 and 1366 px wide as desktop width but still applies the touch layout. The two clash.
+
+## Workarounds
+
+1. **Use the native app.** *Lumora for iPad* and the Android app have proper tablet layouts. This is the recommended option.
+2. In Safari, tap **aA > Request Desktop Website**. The full desktop layout loads, with smaller touch targets.
+3. Collapse the sidebar with the **«** button. It stays collapsed for the session.
+4. Use portrait orientation.
+
+## Agent notes
+
+Link the case to FE-1290 so the customer is notified when the fix ships. Change the status to **Pending Release**, not Closed.",Known Issue,Mobile,Starter;Team;Business;Enterprise,en_US
+KA-0042,Backup retention and restoring deleted data,backup-retention-and-restore,"How long Lumora keeps backups, what users can restore themselves (trash, version history), and how to request a restore from backup.","## Backup policy
+
+- Lumora takes encrypted snapshots of all workspace data **every 24 hours**, plus continuous transaction logs, in a separate region from production.
+- **Retention:** 30 days (Starter, Team, Business). 90 days (Enterprise).
+- Backups are for disaster recovery and restoring a whole workspace or project. They are not an archive the customer can browse.
+
+## What users can restore themselves
+
+| What | Where | How long |
+|---|---|---|
+| Deleted tasks, files, projects | **Trash** | 30 days |
+| Earlier versions of a file or document | **Version history** on the item | Depends on the version setting (KA-0016) |
+| Deleted custom fields | **Settings > Fields > Deleted** | 30 days |
+| Field changes on a task | **Activity** tab, then **Revert** | Unlimited |
+
+## Requesting a restore from backup
+
+For anything not covered above (for example a project bulk-edited by mistake, or data deleted more than 30 days ago but still within the backup window):
+
+1. A workspace **Owner** must ask for it in writing on the case.
+2. Give the project or workspace name and a point in time (date, time and timezone) to restore to.
+3. Restores are done **into a new copy of the project**, never over live data. The customer then copies back what they need.
+4. Target time: 2 business days (Enterprise: 1 business day). There is no charge on Business and Enterprise. On Starter and Team, the first restore each year is free.
+
+## Customer-side backups
+
+Customers can set up their own regular exports with scheduled reports (KA-0024) or the bulk export API (`POST /v2/exports`).",Policy,Security & Compliance,Starter;Team;Business;Enterprise,en_US
+KA-0043,Using the audit log for compliance,audit-log-compliance,"Which user and admin actions the audit log records, how long it keeps them, and how to export or stream it to a SIEM.","## What is recorded
+
+| Category | Example events |
+|---|---|
+| Authentication | Sign-in success and failure, SSO assertion, 2FA turned on or reset, lockout, sign-out |
+| Members and roles | Invite, role change, seat change, deactivate, SCIM changes |
+| Data access | Sensitive field revealed, export started and downloaded, file downloaded (Enterprise) |
+| Content | Project or task created, updated, deleted, restored, or permission changed |
+| Admin settings | Security policy, SSO, integrations, API tokens, webhooks |
+| Billing | Plan change, payment method change |
+
+Each entry records who did it (the user or the API token), the IP address, the user agent, the time in UTC, the object, and the values before and after.
+
+## Retention
+
+- **Business:** 1 year, viewable in the app.
+- **Enterprise:** 7 years. Can also be streamed out (below).
+- Entries can't be edited or deleted, including by Owners.
+
+## View and export
+
+**Settings > Security > Audit log**. You can filter by user, event type, object and date. Click **Export** to download CSV or JSON (up to 1 million rows per export). There is also an API: `GET /v2/audit-events`.
+
+## Stream to a SIEM (Enterprise)
+
+**Settings > Security > Audit log > Streaming** supports Splunk HEC, Datadog, Amazon S3, and a generic HTTPS endpoint. Events arrive within 60 seconds.
+
+## Compliance documents
+
+Customers can download SOC 2 Type II and ISO 27001 reports, plus the DPA, from the Trust Center at `trust.lumora.example` after signing an NDA. Don't attach these documents to cases.",Reference,Security & Compliance,Business;Enterprise,en_US
+KA-0044,Using a custom domain for your workspace,custom-domain-setup,How Enterprise workspaces serve Lumora from their own domain (for example work.example.com) using a CNAME record and an automatically managed TLS certificate.,"## Availability
+
+Custom domains are available on **Enterprise** only. On other plans, the workspace uses `<subdomain>.lumora.example`. The subdomain can be changed once every 30 days under **Settings > Workspace > Address**.
+
+If a customer on a lower plan asks for this, explain that it's an Enterprise feature and offer to bring in their account manager. Close the case as **Resolved – Plan limitation**.
+
+## Setup (Enterprise)
+
+1. Go to **Settings > Workspace > Custom domain** and enter the domain, for example `work.example.com`. Only subdomains are supported, not apex domains like `example.com`.
+2. In your DNS, create a **CNAME** record: `work.example.com → custom.lumora.example`.
+3. Click **Verify**. DNS changes can take up to 24 hours to spread, but usually take minutes.
+4. Lumora issues and renews the TLS certificate automatically. If your domain has **CAA** records, add `letsencrypt.org`.
+5. When the status shows **Active**, the old `lumora.example` address redirects to the custom domain.
+
+## After switching
+
+- Update the SSO settings in your IdP: the Entity ID and ACS URL change to the custom domain (KA-0007). Lumora accepts both the old and new addresses for 14 days.
+- Webhook and API URLs **don't change**. The API stays on `api.lumora.example`.
+- Links in existing emails and bookmarks keep working through the redirect.
+
+## Troubleshooting
+
+| Status | Fix |
+|---|---|
+| `CNAME not found` | Check the record. Some DNS providers add the zone name automatically |
+| `Certificate pending` for more than 1 hour | Check CAA records. Make sure there's no proxy (orange-cloud style) in front of the CNAME |",How-to,Account & Billing,Enterprise,en_US
+KA-0045,Handling feature requests and finding out what's on the roadmap,feature-requests-and-roadmap,"How agents log feature requests, what to tell customers, and the current status of the most-requested features (languages, report filters, template duplication, advanced analytics).","## Process for agents
+
+1. **Check whether the feature already exists.** Many ""requests"" are features the customer hasn't found. Search the knowledge base first.
+2. **Find the matching request** on the Product Feedback board (internal) and link the case to it. If there's none, create one with the customer's use case in their own words.
+3. **Set expectations.** Don't promise dates. Say: ""I've added your request to FR-xxx. Product reviews requests monthly, and you'll be emailed if its status changes.""
+4. Close the case as **Resolved – Feature request logged**. Feature requests are always **Low** priority unless a contract commitment is involved.
+
+## Status of frequently requested features (October 2026)
+
+| Request | Status | What to tell the customer |
+|---|---|---|
+| **More interface languages** (FR-077) | Partly available | The app is available in English, Spanish, Portuguese (BR), French, German, Japanese and Dutch. Italian and Polish are planned for the first half of 2027. Users choose under **Profile > Preferences > Language** |
+| **More detailed report filters** (FR-102) | Available | Advanced filters (AND/OR groups, relative dates, ""is any of"", filtering on related fields) are in **Filter > Advanced**. Many customers haven't found it |
+| **Duplicate templates** (FR-095) | Available | **Templates > ⋯ > Duplicate**. To copy a project, use **Project > ⋯ > Save as template** |
+| **Advanced analytics / funnels / user behavior** (FR-131) | Add-on | The **Lumora Insights** add-on (Business+) provides cycle-time, throughput and funnel charts. Product usage tracking of a customer's own end users isn't planned |
+| **Scheduled export to cloud storage** (FR-118) | Beta | See KA-0024 |
+| **Dark mode** (FR-012) | Available | See KA-0046 |
+| **Sharing projects across workspaces** (FR-140) | Enterprise | See KA-0047 |",Policy,Getting Help,Starter;Team;Business;Enterprise,en_US
+KA-0046,Turning on dark mode and other appearance settings,dark-mode-and-appearance,"How to switch between light, dark and system themes in the web, desktop and mobile apps, plus the density and accessibility options.","## Dark mode
+
+Dark mode arrived in release **2026.09.1** for the web and desktop apps. The mobile apps have had it since version 2.2.
+
+**Web and desktop:** **Profile > Preferences > Appearance > Theme** gives three choices:
+
+- **Light**
+- **Dark**
+- **Match system**, which follows the operating system's setting and switches automatically if the OS does (for example at sunset)
+
+**iOS and Android:** **Settings > Appearance**. By default the app follows the device setting.
+
+The setting is saved for each user and each device. Dashboards and charts switch to a dark-friendly color palette automatically.
+
+## Other appearance settings
+
+- **Density:** *Comfortable* or *Compact* rows in tables and boards.
+- **High-contrast mode:** stronger borders and focus outlines (meets WCAG 2.2 AA).
+- **Reduce motion:** turns off animations. Follows the OS setting by default.
+- **Font size:** 90%–130%, for the app only, separate from browser zoom.
+
+## Known limitations
+
+- Emails and exported PDFs always use the light theme.
+- Custom HTML blocks in documents may have colors set by their author that are hard to read in dark mode.",How-to,Getting Started,Starter;Team;Business;Enterprise,en_US
+KA-0047,Collaborating on projects across multiple workspaces,sharing-projects-across-workspaces,"Ways to work on the same project from different workspaces (Guest access, and Enterprise Organizations with shared projects) and the limitations of each.","## Choose an approach
+
+| Approach | Plans | Best for |
+|---|---|---|
+| **Invite people as Guests** | Team+ | A few people from another workspace or company joining one project |
+| **Organization with shared projects** | Enterprise | Large companies with several workspaces (by region or business unit) that need to work on the same projects |
+
+## Guest access
+
+1. Open the project and click **Share > Invite**, then enter the email address.
+2. A person who isn't a member of your workspace becomes a **Guest** and can open only the projects shared with them.
+3. Guests switch between their own workspace and yours with the workspace picker.
+4. Team and Business include 5 free guests per paid seat.
+
+Limitations: guests don't see your member directory, can't create projects, and see their tasks from your workspace separately from their own.
+
+## Enterprise Organizations
+
+An **Organization** groups several Enterprise workspaces under one admin console.
+
+1. An Organization Admin turns on **Org settings > Collaboration > Shared projects**.
+2. In any workspace, a project manager clicks **Project > ⋯ > Share with workspaces** and chooses the target workspaces.
+3. Members of those workspaces see the project in their own sidebar with their normal role, without becoming guests.
+4. Reports and dashboards can include shared projects. Automations run in the workspace that **owns** the project.
+
+## Limitations
+
+- Shared projects can't be moved between workspaces. Ownership stays with the original workspace.
+- Custom fields only from the owning workspace appear in a shared project.
+- To combine two workspaces permanently, ask Support for a **workspace merge** (Enterprise, planned with the CSM).",How-to,Tasks & Projects,Team;Business;Enterprise,en_US
