@@ -1,12 +1,13 @@
 # Prompts
 
-System prompts for working with support Cases, one file per version. A version never changes once it has been measured: to change a prompt, copy it to the next version number and edit the copy.
+System prompts for working with support Cases and grading RAG answers, one file per version. A version never changes once it has been measured: to change a prompt, copy it to the next version number and edit the copy.
 
 | Task | Current | File | What it does |
 |---|---|---|---|
 | Case summary | v2 | `case_summary_v2.md` | Three lines: Issue, Actions taken, Next step |
 | Case classification | v1 | `case_classify_v1.md` | One of 8 categories and one of 4 urgency levels |
 | Summary judge | v1 | `case_summary_judge_v1.md` | Scores a summary 1–5 against its Case |
+| RAG answer judge | v1 | `rag_answer_judge_v1.md` | Scores a Knowledge base answer 1–5 for groundedness and correctness |
 
 All prompts run on `claude-opus-5-5`. The current version of each task is set in `CURRENT` in `case_prompts.py`.
 
@@ -19,7 +20,7 @@ uv run prompts/case_prompts.py summarize Case07 --version v1
 uv run prompts/case_prompts.py classify Case07
 ```
 
-The Case is a `referenceId` from `CaseHandlerSF/data/salesforce/Case.json`. From Python, import `summarize`, `classify` and `grade_summary` from `case_prompts.py`. The scripts in `experiments/` do this.
+The Case is a `referenceId` from `CaseHandlerSF/data/salesforce/Case.json`. From Python, import `summarize`, `classify`, `grade_summary` and `grade_rag_answer` from `case_prompts.py`. The scripts in `experiments/` do this.
 
 What each prompt receives:
 
@@ -41,10 +42,15 @@ What each prompt receives:
 
 - **v1:** 1–5 scale with anchors. It sees one summary at a time and is not told which prompt version wrote it.
 
+### rag_answer_judge
+
+- **v1:** two independent 1–5 scores. **Groundedness**: is every claim supported by the retrieved chunks? It is judged against the chunks only, so a true fact that wasn't retrieved still counts as unsupported. **Correctness**: does the answer match the reference answer in `experiments/rag_test_questions.csv`? For the questions the Knowledge base can't answer, saying so is correct. A refusal makes no product claims, so it never lowers groundedness; a wrong refusal is a correctness failure. 4 or 5 counts as a pass. Not yet checked against the 10 hand-labelled answers: run `experiments/rag_judge_test.py`.
+
 ## Tests
 
 | Script | Measures |
 |---|---|
 | `experiments/case_summary_test.py` | Summary versions side by side on 10 Cases: format check and judge score |
 | `experiments/case_classify_test.py` | Classification accuracy against `experiments/case_labels.csv` |
+| `experiments/rag_judge_test.py` | RAG answer judge against 10 hand-labelled answers; `--all` scores real answers to all 40 test questions |
 | `experiments/robustness_test.py` | Portuguese Cases, very long Cases and hidden instructions, through all current prompts |
