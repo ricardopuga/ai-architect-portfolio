@@ -30,7 +30,12 @@ from pydantic import BaseModel, Field
 MODEL = "claude-opus-5-5"
 PROMPTS_DIR = Path(__file__).parent
 DATA = PROMPTS_DIR.parent / "CaseHandlerSF/data/salesforce"
-CURRENT = {"case_summary": "v2", "case_classify": "v1", "case_summary_judge": "v1"}
+CURRENT = {
+    "case_summary": "v2",
+    "case_classify": "v1",
+    "case_summary_judge": "v1",
+    "rag_answer_judge": "v1",
+}
 # Prompt versions written to take the Case as plain text rather than inside <case> tags.
 PLAIN_CASE = {"case_summary_v1"}
 SUMMARY_FIELDS = ("Subject", "Description", "Status", "Priority", "Origin", "Type", "Reason")
@@ -58,6 +63,13 @@ class Classification(BaseModel):
 class Grade(BaseModel):
     reasoning: str
     score: int = Field(ge=1, le=5)
+
+
+class RagGrade(BaseModel):
+    reasoning: str
+    unsupported_claims: list[str]
+    groundedness: int = Field(ge=1, le=5)
+    correctness: int = Field(ge=1, le=5)
 
 
 def client() -> anthropic.Anthropic:
@@ -137,6 +149,37 @@ def grade_summary(case_text: str, summary: str, version: str | None = None) -> G
     )
     if response.stop_reason == "refusal" or response.parsed_output is None:
         return Grade(reasoning="[judge refused]", score=1)
+    return response.parsed_output
+
+
+def grade_rag_answer(
+    question: str,
+    chunks: list[tuple[str, str]],
+    reference: str,
+    answer: str,
+    version: str | None = None,
+) -> RagGrade | None:
+    """Score a RAG answer 1-5 for groundedness (against the retrieved chunks, given as
+    (article_number, content)) and correctness (against the reference answer).
+    Returns None if the judge refused."""
+    retrieved = "\n\n".join(f'<article id="{number}">\n{content}\n</article>' for number, content in chunks)
+    response = client().beta.messages.parse(
+        model=MODEL,
+        max_tokens=6000,
+        system=load_prompt("rag_answer_judge", version),
+        output_config={"effort": "medium"},
+        output_format=RagGrade,
+        messages=[{
+            "role": "user",
+            "content": (
+                f"<question>\n{question}\n</question>\n\n<retrieved>\n{retrieved}\n</retrieved>\n\n"
+                f"<reference>\n{reference}\n</reference>\n\n<answer>\n{answer}\n</answer>"
+            ),
+        }],
+        **FALLBACK,
+    )
+    if response.stop_reason == "refusal":
+        return None
     return response.parsed_output
 
 
