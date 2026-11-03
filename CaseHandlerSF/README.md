@@ -7,6 +7,8 @@ Three tools for working with Salesforce Cases:
 - An MCP server that gives an AI assistant four tools: look up a Case, search the Knowledge base, draft a reply to the customer, and add an approved comment to the Case.
 - A support agent that uses those tools, and asks a person to approve before it writes to Salesforce.
 
+For how these fit together and what they connect to, see the C4 diagrams in [docs/architecture.md](docs/architecture.md).
+
 ## Requirements
 
 - [uv](https://docs.astral.sh/uv/). It installs Python 3.14 (from `.python-version`) for you.
