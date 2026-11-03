@@ -7,6 +7,9 @@ ones the MCP server in mcp_server.py exposes, called in-process.
 At most MAX_STEPS calls are made. On the last one tools are switched off, so Claude
 has to answer from what it has gathered rather than being cut off mid-search.
 
+Every run can be logged as JSON lines (log_path): each call to Claude and each tool
+call, with inputs, outputs and durations, under one run_id.
+
 Tools that write to Salesforce (NEEDS_APPROVAL) run only after a person approves the
 exact arguments. A rejection, with any feedback, goes back to Claude as the tool result,
 so it can revise and ask again.
@@ -18,8 +21,12 @@ so it can revise and ask again.
 import asyncio
 import json
 import sys
+import time
+import uuid
 from collections.abc import Callable
 from dataclasses import dataclass, field
+from datetime import UTC, datetime
+from pathlib import Path
 from typing import Any
 
 import anthropic
@@ -29,6 +36,7 @@ from casehandlersf.mcp_server import mcp
 
 MODEL = "claude-opus-5-5"
 MAX_STEPS = 5
+LOG_PATH = Path("logs/agent_runs.jsonl")
 # Tools that change data in Salesforce. The loop asks a person before running them.
 NEEDS_APPROVAL = frozenset({"update_case"})
 
@@ -71,6 +79,7 @@ class ToolCall:
     is_error: bool
     # True or False for tools in NEEDS_APPROVAL, None for the rest.
     approved: bool | None = None
+    duration_ms: int = 0
 
 
 @dataclass
@@ -80,6 +89,34 @@ class AgentResult:
     # end_turn: Claude answered. refusal / max_tokens: the step was cut short.
     stop_reason: str
     tool_calls: list[ToolCall] = field(default_factory=list)
+    run_id: str = ""
+
+
+class RunLog:
+    """Appends one JSON object per line to `path`, for reviewing runs later.
+    With no path, nothing is written."""
+
+    def __init__(self, path: Path | None, run_id: str) -> None:
+        self.path = path
+        self.run_id = run_id
+        if path:
+            path.parent.mkdir(parents=True, exist_ok=True)
+
+    def write(self, event: str, **fields: Any) -> None:
+        if self.path is None:
+            return
+        record = {
+            "ts": datetime.now(UTC).isoformat(timespec="milliseconds"),
+            "run_id": self.run_id,
+            "event": event,
+            **fields,
+        }
+        with self.path.open("a", encoding="utf-8") as f:
+            f.write(json.dumps(record, ensure_ascii=False, default=str) + "\n")
+
+
+def _ms_since(start: float) -> int:
+    return round((time.perf_counter() - start) * 1000)
 
 
 async def _tool_definitions() -> list[dict[str, Any]]:
@@ -105,21 +142,55 @@ async def run_agent(
     client: anthropic.AsyncAnthropic | None = None,
     max_steps: int = MAX_STEPS,
     approve: Approver = reject_all,
+    log_path: Path | None = None,
 ) -> AgentResult:
     client = client or anthropic.AsyncAnthropic()
+    log = RunLog(log_path, uuid.uuid4().hex[:12])
+    started = time.perf_counter()
+    log.write("run_start", question=question, model=MODEL, max_steps=max_steps)
+    try:
+        result = await _loop(question, client, max_steps, approve, log)
+    except Exception as e:
+        log.write(
+            "run_error",
+            error=f"{type(e).__name__}: {e}",
+            duration_ms=_ms_since(started),
+        )
+        raise
+    result.run_id = log.run_id
+    log.write(
+        "run_end",
+        answer=result.answer,
+        steps=result.steps,
+        stop_reason=result.stop_reason,
+        tool_calls=len(result.tool_calls),
+        duration_ms=_ms_since(started),
+    )
+    return result
+
+
+async def _loop(
+    question: str,
+    client: anthropic.AsyncAnthropic,
+    max_steps: int,
+    approve: Approver,
+    log: RunLog,
+) -> AgentResult:
     tools = await _tool_definitions()
     messages: list[dict[str, Any]] = [{"role": "user", "content": question}]
     tool_calls: list[ToolCall] = []
 
     for step in range(1, max_steps + 1):
         last_step = step == max_steps
+        # On the last step Claude must answer with what it has.
+        tool_choice = {"type": "none"} if last_step else {"type": "auto"}
+        call_started = time.perf_counter()
         response = await client.beta.messages.create(
             model=MODEL,
             max_tokens=16000,
             system=SYSTEM_PROMPT,
             tools=tools,
-            # On the last step Claude must answer with what it has.
-            tool_choice={"type": "none"} if last_step else {"type": "auto"},
+            tool_choice=tool_choice,
             output_config={"effort": "medium"},
             messages=messages,
             # If a safety check declines, retry on Anthropic's recommended fallback model.
@@ -129,33 +200,66 @@ async def run_agent(
         # Send the whole turn back unchanged, thinking blocks included.
         messages.append({"role": "assistant", "content": response.content})
 
+        text = "".join(b.text for b in response.content if b.type == "text").strip()
         tool_uses = [b for b in response.content if b.type == "tool_use"]
+        log.write(
+            "model_call",
+            step=step,
+            tool_choice=tool_choice["type"],
+            # Differs from MODEL when a refusal was retried on the fallback model.
+            model=response.model,
+            stop_reason=response.stop_reason,
+            input_tokens=response.usage.input_tokens,
+            output_tokens=response.usage.output_tokens,
+            duration_ms=_ms_since(call_started),
+            text=text,
+            tool_uses=[u.name for u in tool_uses],
+        )
         if response.stop_reason != "tool_use" or not tool_uses:
-            text = "".join(b.text for b in response.content if b.type == "text")
             if response.stop_reason == "refusal":
                 text = "[Claude declined to answer]"
-            return AgentResult(text.strip(), step, response.stop_reason, tool_calls)
+            return AgentResult(text, step, response.stop_reason, tool_calls)
 
         # Claude may ask for several tools at once: run them all and reply in one message.
         results = []
         for use in tool_uses:
-            approved = None
+            approved, feedback, approval_ms = None, "", None
             if use.name in NEEDS_APPROVAL:
+                asked = time.perf_counter()
                 decision = approve(use.name, use.input)
-                approved = decision.approved
+                approved, feedback = decision.approved, decision.feedback
+                approval_ms = _ms_since(asked)
+
+            tool_started = time.perf_counter()
             if approved is False:
-                text = "A person rejected this, so nothing was written."
-                if decision.feedback:
-                    text += f" Their feedback: {decision.feedback}"
+                output = "A person rejected this, so nothing was written."
+                if feedback:
+                    output += f" Their feedback: {feedback}"
                 is_error = True
             else:
-                text, is_error = await _run_tool(use.name, use.input)
-            tool_calls.append(ToolCall(step, use.name, use.input, is_error, approved))
+                output, is_error = await _run_tool(use.name, use.input)
+            duration_ms = _ms_since(tool_started)
+
+            log.write(
+                "tool_call",
+                step=step,
+                tool=use.name,
+                input=use.input,
+                output=output,
+                is_error=is_error,
+                duration_ms=duration_ms,
+                approved=approved,
+                feedback=feedback or None,
+                approval_ms=approval_ms,
+            )
+            tool_calls.append(
+                ToolCall(step, use.name, use.input, is_error, approved, duration_ms)
+            )
             results.append(
                 {
                     "type": "tool_result",
                     "tool_use_id": use.id,
-                    "content": text,
+                    "content": output,
                     "is_error": is_error,
                 }
             )
@@ -191,7 +295,9 @@ def main() -> None:
         sys.exit('usage: casehandlersf-agent "<question>"')
     question = " ".join(sys.argv[1:])
     try:
-        result = asyncio.run(run_agent(question, approve=ask_in_terminal))
+        result = asyncio.run(
+            run_agent(question, approve=ask_in_terminal, log_path=LOG_PATH)
+        )
     except anthropic.APIError as e:
         sys.exit(f"error: Claude request failed: {type(e).__name__}")
 
@@ -204,8 +310,10 @@ def main() -> None:
             )
         print(
             f"step {call.step}: {call.name}({json.dumps(call.arguments)}) -> {status}"
+            f" ({call.duration_ms} ms)"
         )
     print(f"\n{result.answer}")
     if result.stop_reason == "max_tokens":
         print("\n[answer cut off: hit max_tokens]")
-    print(f"\n({result.steps} of {MAX_STEPS} steps used)")
+    print(f"\n({result.steps} of {MAX_STEPS} steps used, run {result.run_id})")
+    print(f"Log: {LOG_PATH}")

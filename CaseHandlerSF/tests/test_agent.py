@@ -1,4 +1,5 @@
 import asyncio
+import json
 from types import SimpleNamespace
 
 import pytest
@@ -27,11 +28,17 @@ class ScriptedClaude:
     async def _create(self, **kwargs):
         self.calls.append({**kwargs, "messages": list(kwargs["messages"])})
         if kwargs["tool_choice"] == {"type": "none"}:
-            return SimpleNamespace(
-                stop_reason="end_turn", content=[text("Best I can say.")]
-            )
-        stop_reason, content = self.turns.pop(0)
-        return SimpleNamespace(stop_reason=stop_reason, content=content)
+            return response("end_turn", [text("Best I can say.")])
+        return response(*self.turns.pop(0))
+
+
+def response(stop_reason: str, content: list) -> SimpleNamespace:
+    return SimpleNamespace(
+        stop_reason=stop_reason,
+        content=content,
+        model=agent.MODEL,
+        usage=SimpleNamespace(input_tokens=1200, output_tokens=80),
+    )
 
 
 @pytest.fixture(autouse=True)
@@ -220,3 +227,51 @@ def test_read_only_tools_need_no_approval() -> None:
 
     assert person.shown == []
     assert result.tool_calls[0].approved is None
+
+
+def test_logs_every_model_and_tool_call(tmp_path) -> None:
+    log_path = tmp_path / "logs" / "runs.jsonl"
+    claude = ScriptedClaude(
+        ("tool_use", [tool_use("t1", "get_case", case_key="00001001")]),
+        ("tool_use", [update("u1", "Called the customer.")]),
+        ("end_turn", [text("Done.")]),
+    )
+    person = Person(agent.Decision(False, "Too short"))
+    result = asyncio.run(
+        agent.run_agent("Help with 00001001", claude, approve=person, log_path=log_path)
+    )
+
+    records = [json.loads(line) for line in log_path.read_text().splitlines()]
+    assert {r["run_id"] for r in records} == {result.run_id}
+    assert [r["event"] for r in records] == [
+        "run_start",
+        "model_call",
+        "tool_call",
+        "model_call",
+        "tool_call",
+        "model_call",
+        "run_end",
+    ]
+    get_case, update_case = (r for r in records if r["event"] == "tool_call")
+    assert get_case["input"] == {"case_key": "00001001"}
+    assert "Edits from teammates arrive late" in get_case["output"]
+    assert get_case["approved"] is None
+    assert isinstance(get_case["duration_ms"], int)
+    assert update_case["approved"] is False
+    assert update_case["feedback"] == "Too short"
+    assert isinstance(update_case["approval_ms"], int)
+    first_call = records[1]
+    assert first_call["input_tokens"] == 1200
+    assert first_call["tool_uses"] == ["get_case"]
+    assert records[-1]["answer"] == "Done."
+    assert records[-1]["steps"] == 3
+
+
+def test_logs_a_failed_run(tmp_path) -> None:
+    log_path = tmp_path / "runs.jsonl"
+    claude = ScriptedClaude()  # No turns scripted: the first call raises.
+    with pytest.raises(IndexError):
+        asyncio.run(agent.run_agent("Hi", claude, log_path=log_path))
+    last = json.loads(log_path.read_text().splitlines()[-1])
+    assert last["event"] == "run_error"
+    assert last["error"].startswith("IndexError")
