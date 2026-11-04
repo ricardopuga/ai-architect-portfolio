@@ -11,3 +11,6 @@ wheels/
 
 # Secrets
 .env
+
+# Agent run logs: they contain Salesforce Case data
+logs/
