@@ -33,8 +33,10 @@ The API authenticates with the OAuth 2.0 Client Credentials flow, so the org nee
 
 - An External Client App with the Client Credentials flow enabled, and a "Run As" (integration) user set on it. Note its consumer key and secret.
 - The two permission sets from `salesforce/`, deployed and assigned to that user:
-  - `CaseHandler_API_Read`: API access and read access to all Accounts, Contacts and Cases.
+  - `CaseHandler_API_Read`: API access and read access to all Cases, limited to the fields the code queries (Subject, Description, Priority, ClosedDate, plus the standard fields every user can see). No access to Accounts or Contacts.
   - `CaseHandler_API_Comment`: Read and Edit on Case (not Delete or Modify All), needed to add comments.
+
+  Keep the integration user's profile minimal too (for example *Minimum Access - API Only Integrations*), so that the permission sets are the only things granting access. See [docs/access.md](docs/access.md).
 
 ```bash
 cd salesforce
@@ -146,6 +148,28 @@ curl -H "X-API-Key: $API_KEY" http://127.0.0.1:8000/cases/00001001
   | 422 | The request body is invalid; `detail` lists each problem field |
   | 502 | Salesforce refused or failed the call; `detail` includes the Salesforce error code |
 
+- `POST /cases/{key}/suggested-reply` drafts a reply to the customer for an agent to review. It searches the Knowledge base with the Case's subject and description, then Claude writes a draft that uses only the articles it found and cites each one, like `[KA-0029]`. It uses the same prompt as the MCP server's `draft_reply`. **Nothing is written to Salesforce.** To post the reviewed text, use `POST /cases/{key}/comments` without the citations.
+
+  ```bash
+  curl -X POST http://127.0.0.1:8000/cases/00001001/suggested-reply \
+    -H "X-API-Key: $API_KEY" \
+    -H 'content-type: application/json' \
+    -d '{"guidance": "Be brief, and offer a call"}'
+  ```
+
+  The body is optional; `guidance` is up to 2,000 characters. The response has `reply`, `sources` (the cited articles that were found) and `unknown_citations` (cited article numbers that weren't found, to check by hand).
+
+  The search runs on the Amazon Bedrock Knowledge Base, not the local Postgres one, so the API needs no database. It needs `BEDROCK_KB_ID` (and `BEDROCK_KB_REGION`, default `eu-west-1`), AWS credentials that allow `bedrock:Retrieve` on that KB (`aws login` locally, the task role in the cloud), and `ANTHROPIC_API_KEY`. The other routes work without them. Each call is one Claude request, about $0.01–0.02.
+
+  | Status | When |
+  |---|---|
+  | 200 | Draft returned |
+  | 401 | `X-API-Key` is missing or wrong |
+  | 404 | No Case matches `key` |
+  | 422 | The Case has no subject or description, or `guidance` is too long |
+  | 502 | The Salesforce, Knowledge base or Claude call failed, or Claude declined |
+  | 503 | `BEDROCK_KB_ID` isn't set |
+
 ## Run the MCP server
 
 `src/casehandlersf/mcp_server.py` is an [MCP](https://modelcontextprotocol.io) server that runs over stdio. An MCP client, such as Claude Code or Claude Desktop, starts it and calls its tools:
@@ -242,7 +266,11 @@ CI (`.github/workflows/ci.yml`) runs on every push: lint, format check and tests
 
 ## Deploy
 
-There is no automated deploy pipeline. CI only checks that the image builds, and the image is not published to any registry, so you deploy the Salesforce metadata and run the container yourself.
+There is no automated deploy pipeline: CI only checks that the image builds. You deploy the Salesforce metadata yourself, then run the container locally (below) or on AWS.
+
+### AWS
+
+[docs/deploy-aws.md](docs/deploy-aws.md) runs the API on Amazon ECS Express Mode behind HTTPS, with the image in ECR. The Salesforce credentials and the API key are kept in AWS Secrets Manager and passed to the container as environment variables when it starts, so no `.env` file is used in the cloud. No code changes are needed.
 
 ### Salesforce
 
@@ -271,4 +299,4 @@ docker stop casehandlersf
 
 Check that it is up with `curl localhost:8000/health`. Port 8000 must be free, so stop any `fastapi dev` server first.
 
-To run it on another host, either build the image there from this directory, or tag it and push it to a registry you control, then run it with that host's own `.env` (or the same variables set by your platform). The API serves plain HTTP and the key travels in a header, so put a proxy that handles HTTPS in front of it before exposing it beyond your machine.
+To run it on another host that isn't AWS, either build the image there from this directory, or tag it and push it to a registry you control, then run it with that host's own `.env` (or the same variables set by your platform). The API serves plain HTTP and the key travels in a header, so put a proxy that handles HTTPS in front of it before exposing it beyond your machine.

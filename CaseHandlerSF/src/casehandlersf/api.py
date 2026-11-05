@@ -1,4 +1,5 @@
-"""HTTP API serving Cases queried live from Salesforce."""
+"""HTTP API serving Cases queried live from Salesforce, and reply drafts grounded in the
+Knowledge base (searched on Amazon Bedrock, written by Claude)."""
 
 import secrets
 from collections.abc import AsyncIterator
@@ -7,17 +8,28 @@ from datetime import datetime
 from functools import cache
 from typing import Annotated
 
+import anthropic
+import botocore.exceptions
 from fastapi import APIRouter, Depends, FastAPI, HTTPException
 from fastapi.security import APIKeyHeader
-from pydantic import BaseModel, ConfigDict, Field, SecretStr, StringConstraints
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    SecretStr,
+    StringConstraints,
+    ValidationError,
+)
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from requests import RequestException
 from simple_salesforce.exceptions import SalesforceError
 
+from casehandlersf import bedrock_knowledge, drafting
 from casehandlersf.salesforce import add_case_comment, find_case
 
 # CaseComment.CommentBody is a 4,000-character field in Salesforce.
 COMMENT_MAX_LENGTH = 4000
+GUIDANCE_MAX_LENGTH = 2000
 
 
 class CaseOut(BaseModel):
@@ -56,11 +68,58 @@ class CommentOut(BaseModel):
     is_published: bool
 
 
+class SuggestedReplyIn(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    # Notes from the agent, e.g. tone or what to promise.
+    guidance: (
+        Annotated[
+            str,
+            StringConstraints(
+                strip_whitespace=True, min_length=1, max_length=GUIDANCE_MAX_LENGTH
+            ),
+        ]
+        | None
+    ) = None
+
+
+class SourceOut(BaseModel):
+    article_number: str
+    title: str
+
+
+class SuggestedReplyOut(BaseModel):
+    case_number: str
+    # Contains [KA-xxxx] citations for the agent to check; remove them before sending.
+    reply: str
+    sources: list[SourceOut]
+    # Cited article numbers that weren't retrieved; check these by hand.
+    unknown_citations: list[str]
+
+
 class ApiSettings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
     # The API writes to the org, so require a long random key, e.g. `openssl rand -hex 32`.
     api_key: SecretStr = Field(min_length=32)
+
+
+class ClaudeSettings(BaseSettings):
+    model_config = SettingsConfigDict(env_file=".env", extra="ignore")
+
+    # Only the suggested-reply route needs it, so the API starts without it.
+    anthropic_api_key: SecretStr | None = None
+
+
+@cache
+def _claude() -> anthropic.Anthropic:
+    key = ClaudeSettings().anthropic_api_key
+    # Without a key, the SDK falls back to an `ant auth login` profile, if there is one.
+    return (
+        anthropic.Anthropic(api_key=key.get_secret_value())
+        if key
+        else anthropic.Anthropic()
+    )
 
 
 @cache
@@ -133,6 +192,58 @@ def create_comment(case_key: str, comment: CommentIn) -> CommentOut:
         case_id=case_id,
         body=comment.body,
         is_published=comment.is_published,
+    )
+
+
+@cases.post("/{case_key}/suggested-reply")
+def suggest_reply(
+    case_key: str, request: SuggestedReplyIn | None = None
+) -> SuggestedReplyOut:
+    """Draft a reply to the customer, grounded in the Knowledge base, for an agent to review.
+
+    Searches the Knowledge base with the Case's subject and description, then has Claude
+    write a draft citing the articles it used. Nothing is written to Salesforce.
+    """
+    case = CaseOut.model_validate(_get_case_record(case_key))
+    query = drafting.search_query(case.subject, case.description)
+    if not query:
+        raise HTTPException(
+            status_code=422,
+            detail=f"case {case.case_number} has no subject or description to draft from",
+        )
+    try:
+        chunks = bedrock_knowledge.search(query, drafting.TOP_K)
+    except ValidationError as e:
+        raise HTTPException(
+            status_code=503, detail="Knowledge base not configured (BEDROCK_KB_ID)"
+        ) from e
+    except (botocore.exceptions.BotoCoreError, botocore.exceptions.ClientError) as e:
+        raise HTTPException(
+            status_code=502, detail=f"Knowledge base search failed: {type(e).__name__}"
+        ) from e
+
+    prompt = drafting.build_prompt(
+        (
+            ("Case number", case.case_number),
+            ("Subject", case.subject),
+            ("Description", case.description),
+            ("Priority", case.priority),
+            ("Status", case.status),
+        ),
+        chunks,
+        request.guidance if request else None,
+    )
+    try:
+        draft = drafting.write_draft(_claude(), prompt, chunks)
+    except drafting.DraftError as e:
+        raise HTTPException(status_code=502, detail=str(e)) from e
+    return SuggestedReplyOut(
+        case_number=case.case_number,
+        reply=draft.reply,
+        sources=[
+            SourceOut(article_number=n, title=t) for n, t in draft.sources.items()
+        ],
+        unknown_citations=draft.unknown_citations,
     )
 
 
