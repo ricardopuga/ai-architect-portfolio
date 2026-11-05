@@ -1,3 +1,4 @@
+import json
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -11,7 +12,7 @@ from simple_salesforce.exceptions import (
     SalesforceRefusedRequest,
 )
 
-from casehandlersf import api, bedrock_knowledge
+from casehandlersf import api, bedrock_knowledge, drafting
 from casehandlersf.api import app
 
 client = TestClient(app, headers=AUTH)
@@ -405,3 +406,59 @@ def test_suggested_reply_keeps_title_of_best_chunk(
     assert sources == [
         {"article_number": "KA-0029", "title": "Real-time collaboration delay"}
     ]
+
+
+# --- Claude usage logging ---
+
+
+def usage_lines(caplog: pytest.LogCaptureFixture) -> list[dict]:
+    return [
+        json.loads(r.getMessage())
+        for r in caplog.records
+        if r.name == "casehandlersf.usage"
+    ]
+
+
+@pytest.fixture
+def caplog_usage(caplog: pytest.LogCaptureFixture) -> pytest.LogCaptureFixture:
+    # The usage logger doesn't propagate (it writes its own JSON lines), so attach caplog to it.
+    logger = drafting.usage_log
+    logger.addHandler(caplog.handler)
+    yield caplog
+    logger.removeHandler(caplog.handler)
+
+
+def test_suggested_reply_logs_usage_and_cost(
+    monkeypatch: pytest.MonkeyPatch, kb_queries: list, caplog_usage
+) -> None:
+    fake = fake_claude(monkeypatch, text="Hi [KA-0029]")
+    fake.response.model = "claude-opus-5-5"
+    fake.response.usage = SimpleNamespace(
+        input_tokens=2000, output_tokens=500, cache_read_input_tokens=0
+    )
+    assert client.post("/cases/00001002/suggested-reply").status_code == 200
+
+    [line] = usage_lines(caplog_usage)
+    assert line["event"] == "claude_usage"
+    assert line["case_number"] == "00001002"
+    assert (line["input_tokens"], line["output_tokens"]) == (2000, 500)
+    # 2,000 x $4/M + 500 x $20/M
+    assert line["cost_usd"] == pytest.approx(0.018)
+    assert line["price_known"] is True
+
+
+def test_refusal_is_logged_too(
+    monkeypatch: pytest.MonkeyPatch, kb_queries: list, caplog_usage
+) -> None:
+    fake = fake_claude(monkeypatch, stop_reason="refusal")
+    fake.response.usage = SimpleNamespace(input_tokens=1000, output_tokens=0)
+    assert client.post("/cases/00001002/suggested-reply").status_code == 502
+    [line] = usage_lines(caplog_usage)
+    assert line["stop_reason"] == "refusal"
+    assert line["cost_usd"] > 0
+
+
+def test_unknown_model_is_costed_at_the_highest_price() -> None:
+    usage = SimpleNamespace(input_tokens=1_000_000, output_tokens=0)
+    assert drafting.estimated_cost("claude-future-9", usage) == (10.0, False)
+    assert drafting.estimated_cost("claude-opus-5-5", usage) == (4.0, True)

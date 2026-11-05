@@ -4,15 +4,41 @@ Shared by the MCP server's draft_reply tool and the HTTP API's suggested-reply r
 so both use the same prompt and the same citation check.
 """
 
+import json
+import logging
 import re
+import sys
+import time
 from collections.abc import Iterable
 from dataclasses import dataclass
-from typing import Protocol
+from typing import Any, Protocol
 
 import anthropic
 
 MODEL = "claude-opus-5-5"
 TOP_K = 5
+
+# USD per million tokens: (input, output, cache read). Anthropic first-party prices,
+# 2026-10. A refusal can be retried on another model, so the fallback models are listed too.
+PRICES = {
+    "claude-opus-5-5": (4.00, 20.00, 0.20),
+    "claude-opus-5": (5.00, 25.00, 0.50),
+    "claude-opus-4-8": (5.00, 25.00, 0.50),
+    "claude-sonnet-5-5": (2.00, 10.00, 0.20),
+    "claude-fable-5-1": (10.00, 50.00, 0.25),
+}
+# An unknown model is costed at the highest price, so the spend alarm errs on the safe side.
+_UNKNOWN_PRICE = (10.00, 50.00, 1.00)
+
+# One JSON line per Claude call, on stderr: the MCP server uses stdout for its protocol,
+# and ECS sends stderr to CloudWatch Logs, where a metric filter sums cost_usd.
+usage_log = logging.getLogger("casehandlersf.usage")
+if not usage_log.handlers:
+    _handler = logging.StreamHandler(sys.stderr)
+    _handler.setFormatter(logging.Formatter("%(message)s"))
+    usage_log.addHandler(_handler)
+    usage_log.setLevel(logging.INFO)
+    usage_log.propagate = False
 
 SYSTEM_PROMPT = """You draft replies from a support agent to a customer about their \
 support Case, for Lumora Workspace. The agent reviews and edits each draft before sending it.
@@ -67,8 +93,53 @@ def build_prompt(
     return prompt
 
 
-def write_draft(client: anthropic.Anthropic, prompt: str, chunks: list[Chunk]) -> Draft:
-    """Ask Claude for the draft, then check every citation points to a chunk it was given."""
+def estimated_cost(model: str, usage: Any) -> tuple[float, bool]:
+    """(cost in USD, whether the model's price is known) for one response's usage."""
+    known = model in PRICES
+    price_in, price_out, price_cache = PRICES.get(model, _UNKNOWN_PRICE)
+    tokens_in = (getattr(usage, "input_tokens", 0) or 0) + (
+        getattr(usage, "cache_creation_input_tokens", 0) or 0
+    ) * 1.25
+    cost = (
+        tokens_in * price_in
+        + (getattr(usage, "output_tokens", 0) or 0) * price_out
+        + (getattr(usage, "cache_read_input_tokens", 0) or 0) * price_cache
+    ) / 1_000_000
+    return round(cost, 6), known
+
+
+def log_usage(response: Any, seconds: float, case_number: str | None) -> None:
+    usage = getattr(response, "usage", None)
+    model = getattr(response, "model", None) or MODEL
+    cost, known = estimated_cost(model, usage)
+    usage_log.info(
+        json.dumps(
+            {
+                "event": "claude_usage",
+                "model": model,
+                "case_number": case_number,
+                "stop_reason": getattr(response, "stop_reason", None),
+                "input_tokens": getattr(usage, "input_tokens", 0) or 0,
+                "output_tokens": getattr(usage, "output_tokens", 0) or 0,
+                "cache_read_input_tokens": getattr(usage, "cache_read_input_tokens", 0)
+                or 0,
+                "cost_usd": cost,
+                "price_known": known,
+                "seconds": round(seconds, 2),
+            }
+        )
+    )
+
+
+def write_draft(
+    client: anthropic.Anthropic,
+    prompt: str,
+    chunks: list[Chunk],
+    case_number: str | None = None,
+) -> Draft:
+    """Ask Claude for the draft, then check every citation points to a chunk it was given.
+    Every response, refusals included, is logged with its token usage and estimated cost."""
+    started = time.monotonic()
     try:
         response = client.beta.messages.create(
             model=MODEL,
@@ -88,6 +159,7 @@ def write_draft(client: anthropic.Anthropic, prompt: str, chunks: list[Chunk]) -
         if "authentication method" not in str(e):
             raise
         raise DraftError("no Claude credentials: set ANTHROPIC_API_KEY") from e
+    log_usage(response, time.monotonic() - started, case_number)
     if response.stop_reason == "refusal":
         raise DraftError("Claude declined to draft a reply for this case")
     reply = "".join(b.text for b in response.content if b.type == "text").strip()

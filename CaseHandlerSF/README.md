@@ -159,7 +159,7 @@ curl -H "X-API-Key: $API_KEY" http://127.0.0.1:8000/cases/00001001
 
   The body is optional; `guidance` is up to 2,000 characters. The response has `reply`, `sources` (the cited articles that were found) and `unknown_citations` (cited article numbers that weren't found, to check by hand).
 
-  The search runs on the Amazon Bedrock Knowledge Base, not the local Postgres one, so the API needs no database. It needs `BEDROCK_KB_ID` (and `BEDROCK_KB_REGION`, default `eu-west-1`), AWS credentials that allow `bedrock:Retrieve` on that KB (`aws login` locally, the task role in the cloud), and `ANTHROPIC_API_KEY`. The other routes work without them. Each call is one Claude request, about $0.01–0.02.
+  The search runs on the Amazon Bedrock Knowledge Base, not the local Postgres one, so the API needs no database. It needs `BEDROCK_KB_ID` (and `BEDROCK_KB_REGION`, default `eu-west-1`), AWS credentials that allow `bedrock:Retrieve` on that KB (`aws login` locally, the task role in the cloud), and `ANTHROPIC_API_KEY`. The other routes work without them. Each call is one Claude request, about $0.02–0.03 (one measured call: $0.025).
 
   | Status | When |
   |---|---|
