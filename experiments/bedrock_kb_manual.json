@@ -1,0 +1,561 @@
+{
+ "answers": {
+  "kb": {
+   "Q01": "On the Business plan, the first-response target for a High priority case is 4 hours [KA-0002].",
+   "Q02": "Because the workspace enforces SSO. When SSO is required, Lumora does not send password reset emails, since the password is managed by the identity provider [KA-0004]. The user should sign in with **Continue with SSO** and reset their password through their company IdP [KA-0004].",
+   "Q03": "No, that's not a bug. It means the workspace admin has set a strict sign-in policy: 3 failed attempts and a 24-hour lockout [KA-0005]. On Business and Enterprise, admins can set failed attempts from 3 to 10 and lockout from 15 minutes to 24 hours [KA-0005]. Explain that their own admin controls this, and that the admin can unlock the account right away: **Settings > Members**, select the user, then **⋯ > Unlock account**; the user can sign in immediately [KA-0005]. Support agents can also unlock the user from the Support Console after confirming the request with a workspace Admin [KA-0005].",
+   "Q04": "The most likely cause is the phone's clock: Lumora uses time-based codes (TOTP, 30-second window), and if the phone's clock is more than about 60 seconds off, every code fails [KA-0006]. To fix it [KA-0006]:\n1. Turn on automatic date and time on the phone (iOS: **Settings > General > Date & Time > Set Automatically**; Android: **Settings > System > Date & time > Set time automatically**). Google Authenticator on Android also has **⋮ > Settings > Time correction for codes > Sync now**.\n2. Delete any old *Lumora* entries in the authenticator app.\n3. In Lumora, cancel the setup dialog and start again at **Profile > Security > Two-factor authentication**, scanning the new QR code.\n4. Enter the code that is currently showing.",
+   "Q05": "The allowed clock skew is 3 minutes [KA-0007]. `Assertion expired` means the IdP server's clock is off, so fix NTP on the IdP [KA-0007].",
+   "Q06": "Not yet. This is an open known issue, engineering ticket ENG-4471, with a fix planned for release 2026.11.1 [KA-0008]. It has two causes: if the SAML connection has no Single Logout URL, Lumora never hears about the IdP logout, and even with Single Logout the web app's offline cache isn't cleared on logout [KA-0008]. Workarounds [KA-0008]:\n- Configure Single Logout in both the IdP and Lumora (**Settings > Security > Single sign-on > Edit > Single Logout URL**), which ends the server-side session.\n- Shorten **Settings > Security > Session lifetime** (down to 1 hour).\n- On shared devices, turn on **Settings > Security > Disable offline cache**.\n- Have users also sign out with **Profile > Sign out** in Lumora.\nLink the case to ENG-4471 so the customer is notified when the fix ships [KA-0008].",
+   "Q07": "Check their seat type first. Seat type takes priority over role: a user on a Viewer seat is read-only even if their role says Admin [KA-0009]. In **Settings > Members**, find the user; if **Seat** says *Viewer*, change it to *Full*, which needs a free paid seat [KA-0009].",
+   "Q08": "Because the workspace has no seats left. When every paid seat is in use, invites wait in *Pending — awaiting seat* and no email is sent [KA-0010]. Add seats or free one up [KA-0010].",
+   "Q09": "- **Deactivate** frees the seat and keeps everything the user created assigned to them. You can reverse it [KA-0011].\n- **Remove** frees the seat and moves their open tasks to the person you choose. You can't reverse it [KA-0011].",
+   "Q10": "No. A pending charge that appears when a card is added or updated, and isn't on an invoice, is most likely a card **authorization hold**; it disappears within 3–7 business days [KA-0012]. Explain that it's a hold, not a charge, so there is nothing to refund [KA-0012].",
+   "Q11": "Yes. Agents can refund true duplicates without approval, whatever the amount; the rule that refunds over $500 need a Billing Lead's approval applies to other refunds [KA-0012]. To refund it [KA-0012]:\n1. In the Billing Console, open the duplicate **payment** (not the invoice).\n2. Click **Refund > Full**, reason *Duplicate*.\n3. Add a case comment with the refund ID.\nThe refund reaches the card in 5–10 business days, depending on the bank [KA-0012].",
+   "Q12": "No. The invoice ending `-V` is the voided original, and the one with the same base number ending `-R1` is its revision; only the revised invoice is charged [KA-0013]. Lumora creates a revision when billing details change after the invoice is issued, such as a new billing address, a VAT/tax ID or a PO number [KA-0013]. For a clean record, turn on **Settings > Billing > Hide voided invoices**, or use **Export statement** for a CSV with only valid invoices and credit notes [KA-0013].",
+   "Q13": "At 20 days they're past the 14-day grace period, so the workspace is **read-only** for everyone except Owners, who can still reach billing [KA-0015]. To restore access, an Owner updates the payment method under **Settings > Billing > Payment method** and clicks **Retry payment**; access comes back within a minute of a successful charge [KA-0015]. If nothing is done, the workspace is suspended after day 60 [KA-0015].",
+   "Q14": "Yes, it's a known gap: if storage goes from below 80% to 100% in one day, for example after a large bulk import, only the 100% message appears. A daily check that catches this is planned for 2026.11 [KA-0016]. At 100%, new uploads and new file versions are blocked, but viewing and downloading existing files keeps working [KA-0016]. To free space: empty the trash, keep fewer file versions (**Settings > Files > Version history**) and use **Usage > Storage > Largest files**; to add capacity, upgrade or buy 100 GB storage packs [KA-0016].",
+   "Q15": "On Business the browser (web) upload limit is 250 MB [KA-0017][KA-0001]. Support can't raise it, because it's tied to the plan, but there are options [KA-0017]:\n- **Use the API** for resumable uploads, up to 1 GB on Business (`POST /v2/files/uploads`, in 8 MB chunks).\n- **Link instead of uploading** with **Attach > From cloud storage** (Google Drive, OneDrive, Dropbox, Box); linked files don't count against storage or the size limit.\n- **Upgrade** to Enterprise (2 GB).\n- **Compress or split** the file.",
+   "Q16": "The Team limit of 100 requests per minute (burst 20) is counted per workspace and shared by every API token and installed integration in it, so other apps such as the Salesforce connector, Zapier-style tools or a BI connector use the same allowance [KA-0018]. Search endpoints (`/v2/search`) also have a separate limit of 30 per minute [KA-0018]. Check **Settings > API > Usage**, which shows requests per token and per integration for the last 7 days; usually one integration is using most of the allowance [KA-0018]. Honor `Retry-After` with exponential backoff, and use webhooks, batch endpoints and `?fields=` to cut requests [KA-0018].",
+   "Q17": "Fix the endpoint, then click **Re-enable** and choose **Replay failed events**, which resends events from the last 72 hours [KA-0019]. (An endpoint is disabled after 24 hours of failed deliveries [KA-0019].)",
+   "Q18": "The v1 documentation was retired on 2026-08-01, when the developer site moved to a new platform. Old `/docs/api/...` links should redirect, but deep links to sections (with `#anchor`) don't; this is known issue DOC-311 [KA-0020]. Workaround: replace `/docs/api/` with `/v2/reference/` in the URL, or search the developer site [KA-0020]. Report broken links by logging the page URL and the link against DOC-311 [KA-0020].",
+   "Q19": "Exports over 50,000 rows run in the background, but older browser bookmarks still trigger the immediate download, which returns an empty file [KA-0021]. Ask the user to choose **Export > CSV (email me when ready)**; they'll get a download link valid for 7 days (maximum 1,000,000 rows per export) [KA-0021].",
+   "Q20": "Treat it as a possible data exposure and set the priority to at least **High** [KA-0022]. A scheduled export received on 2026-09-10 is before the fix (2026.09.2, released 2026-09-16), so it matches known issue ENG-4388 (affected releases 2026.08.1 to 2026.09.1, scheduled exports only) [KA-0022]. Then [KA-0022]:\n1. Ask for the export file name, the report or schedule name and the date received. Don't ask them to attach the file.\n2. Escalate to the **Security & Privacy** queue; they decide whether the customer must be formally notified under the DPA.\n3. Recommend the customer delete any copies, review the schedule's recipients, and check who holds **Export sensitive data** under **Settings > Roles**.",
+   "Q21": "Yes, as a beta. Cloud storage destinations (Amazon S3, Google Drive, SharePoint) are available on Business and above, in beta since 2026.10.1 [KA-0024]. An Owner turns it on under **Settings > Labs > Scheduled exports to cloud storage**; an S3 destination needs an integration connection with the bucket and an IAM role ARN, and files are named `<report>_<YYYY-MM-DD>.<ext>` [KA-0024]. If the customer asked for this as a feature request, tell them about the beta, link the case to FR-118 and close it as **Resolved – Available in beta** [KA-0024].",
+   "Q22": "This matches a known defect, fixed in 2026.08.2: schedules created before that release saved the timezone as UTC whatever was chosen, so the schedule shows the right timezone but runs in UTC [KA-0025]. **Fix:** edit the schedule, change any setting and change it back, then **Save**; saving rewrites the stored timezone [KA-0025].",
+   "Q23": "The most common cause is a fixed date range: the widget's filter is set to absolute dates (for example *1 Jul – 31 Jul*) instead of a relative range [KA-0026]. Edit the widget, go to **Filters > Date**, and choose a relative option such as **This month** or **Last 30 days** [KA-0026]. If that isn't it, check whether the source report is a paused snapshot (**Last refreshed**), whether a data connector stopped syncing, refresh the widget's cache (**⋯ > Refresh**), and check **Edit widget > Source** in case it points to the wrong report [KA-0026].",
+   "Q24": "Table views load up to 100,000 rows into the browser by default, and above that, filtering in the browser uses a lot of memory and CPU [KA-0028]. The main fix is to turn on server-side filtering: in the view, go to **View settings > Performance > Filter on server**, so filters run on Lumora's servers and only 500 rows are loaded at a time [KA-0028]. Also [KA-0028]:\n- Filter on indexed fields (Status, Assignee, dates, Project, or custom fields marked **Indexed**).\n- Use saved views with the filters already set.\n- Hide formula columns you don't need, and archive old rows.\nIf it continues with server-side filtering on, collect a HAR file and a browser performance profile and escalate to Frontend Engineering [KA-0028].",
+   "Q25": "A regular schedule points to the most common cause: the Salesforce **Refresh Token Policy**. If it's set to \"Expire refresh token after X hours\", the connector disconnects on that schedule [KA-0031]. In Salesforce Setup, go to **Connected Apps OAuth Usage > Lumora Workspace > Manage > Edit Policies** and set **Refresh Token Policy** to *Refresh token is valid until revoked* [KA-0031]. Then reconnect under **Settings > Integrations > Salesforce > Reconnect**, signed in as the integration user; field mappings are kept [KA-0031].",
+   "Q26": "It means the form never reaches the payment step. Check the payment field's conditional logic [KA-0033].",
+   "Q27": "A custom field can't be deleted while anything still uses it: automation rules, report filters/columns or dashboard widgets, form questions, formula fields, integration field mappings or required-field rules [KA-0035]. It looks like nothing happens because of a known UI defect (ENG-4502): the message listing those references sometimes closes straight away; a fix is due in 2026.11.1 [KA-0035]. To fix it [KA-0035]:\n1. In **Settings > Fields**, open the field and go to the **Usage** tab, which lists every reference.\n2. Remove or change each reference.\n3. Click **Delete** again.\nIf it's used in many places, choose **Archive field** instead [KA-0035].",
+   "Q28": "200 runs: a scheduled rule that updates 200 tasks counts as one run per task [KA-0036].",
+   "Q29": "\"Daily\" includes weekends, so this is expected. In the task, go to **Repeat** and choose **Every weekday (Mon–Fri)** instead of **Daily** [KA-0037]. For a different working week, an Admin sets **Settings > Workspace > Working days**, then choose **Repeat > Every working day** [KA-0037]. To remove the weekend tasks already created, filter the project by **Created by: Recurrence** and **Due date: is weekend**, select them and delete them [KA-0037].",
+   "Q30": "No. The 2.3.1 launch crash was resolved in iOS 2.3.2, so if a user still reports a crash on launch with 2.3.2 or later, that article doesn't apply [KA-0040]. Ask for the app version, the iOS version and the crash log (**Settings > Privacy & Security > Analytics & Improvements > Analytics Data**, entries starting with `Lumora`), then escalate to Mobile Engineering [KA-0040].",
+   "Q31": "This is an open known issue, ticket FE-1290, with a fix planned for release 2026.11.2 [KA-0041]. Until then, the workarounds are [KA-0041]:\n- Use the native *Lumora for iPad* app (recommended).\n- In Safari, tap **aA > Request Desktop Website**.\n- Collapse the sidebar with the **«** button.\n- Use portrait orientation.\nDon't close the case: link it to FE-1290 so the customer is notified when the fix ships, and set the status to **Pending Release**, not Closed [KA-0041].",
+   "Q32": "Not from backup: on Business, backups are kept for 30 days, so 45 days ago is outside the backup window [KA-0042]. However, field changes on a task can be reverted with no time limit, from the task's **Activity** tab, then **Revert** [KA-0042], so the bulk edit can still be undone that way.",
+   "Q33": "No. Audit log entries can't be edited or deleted, including by Owners [KA-0043]. Enterprise keeps them for 7 years, and they can also be streamed out to a SIEM [KA-0043].",
+   "Q34": "No. Only subdomains are supported as custom domains, not apex domains like `example.com` [KA-0044]. Use a subdomain such as `work.example.com`: enter it under **Settings > Workspace > Custom domain** and create a CNAME record `work.example.com → custom.lumora.example` [KA-0044].",
+   "Q35": "Not yet. The app is available in English, Spanish, Portuguese (BR), French, German, Japanese and Dutch; Italian and Polish are planned for the first half of 2027 (feature request FR-077) [KA-0045]. Users choose their language under **Profile > Preferences > Language** [KA-0045].",
+   "Q36": "The articles I have don't include pricing. They list each plan's limits, such as storage, upload size, API rate and automations [KA-0001], but not what the Business plan costs per user per month.",
+   "Q37": "The articles I have don't answer this. They only describe the two-way sync with **Google Calendar** [KA-0032]; they don't mention Microsoft Outlook calendars.",
+   "Q38": "The articles I have don't cover choosing where workspace data is hosted. The only related detail is that backups are stored in a separate region from production [KA-0042].",
+   "Q39": "The articles I have don't mention HIPAA or a Business Associate Agreement. The compliance documents they list are the SOC 2 Type II and ISO 27001 reports and the DPA, available from the Trust Center at `trust.lumora.example` after signing an NDA [KA-0043].",
+   "Q40": "The articles I have don't say. The known launch crash in version 2.3.1 is documented for the **iOS** app (iOS 17 and 18, with offline mode on, fixed in iOS 2.3.2) [KA-0040]; there is nothing about the Android app."
+  }
+ },
+ "grades": {
+  "kb": {
+   "Q01": {
+    "groundedness": 5,
+    "correctness": 5,
+    "unsupported_claims": [],
+    "reasoning": "One claim, 4 hours for High on Business, straight from KA-0002's table. Matches the reference's main point; the Enterprise figure is a secondary detail."
+   },
+   "Q02": {
+    "groundedness": 5,
+    "correctness": 5,
+    "unsupported_claims": [],
+    "reasoning": "Both claims (no reset email when SSO is required because the IdP manages the password; sign in with Continue with SSO and reset through the IdP) are in KA-0004. Matches the reference."
+   },
+   "Q03": {
+    "groundedness": 5,
+    "correctness": 5,
+    "unsupported_claims": [],
+    "reasoning": "Not a bug, strict admin policy (3 attempts, 24 hours), ranges 3–10 and 15 min–24 h on Business/Enterprise, unlock path, Support Console unlock: all in KA-0005. Matches the reference including the unlock path."
+   },
+   "Q04": {
+    "groundedness": 5,
+    "correctness": 5,
+    "unsupported_claims": [],
+    "reasoning": "Clock more than ~60 s off with TOTP 30-second window, automatic date and time paths, delete old entries, restart setup with the new QR, enter the current code: all in KA-0006. Matches the reference."
+   },
+   "Q05": {
+    "groundedness": 5,
+    "correctness": 5,
+    "unsupported_claims": [],
+    "reasoning": "3 minutes and fix NTP on the IdP are in KA-0007's error table. Matches the reference."
+   },
+   "Q06": {
+    "groundedness": 5,
+    "correctness": 5,
+    "unsupported_claims": [],
+    "reasoning": "Open, ENG-4471, fix planned for 2026.11.1, the two causes, all four workarounds and linking the case are in KA-0008. Matches the reference fully."
+   },
+   "Q07": {
+    "groundedness": 5,
+    "correctness": 5,
+    "unsupported_claims": [],
+    "reasoning": "Seat type over role, Viewer seat read-only even as Admin, change to Full in Settings > Members (needs a free paid seat): all in KA-0009. The question asks what to check first, which is the reference's main point; the later checks are secondary."
+   },
+   "Q08": {
+    "groundedness": 5,
+    "correctness": 5,
+    "unsupported_claims": [],
+    "reasoning": "No seats left, invites wait in Pending — awaiting seat with no email, add or free a seat: KA-0010. Matches the reference."
+   },
+   "Q09": {
+    "groundedness": 5,
+    "correctness": 5,
+    "unsupported_claims": [],
+    "reasoning": "Both definitions are quoted from KA-0011. Matches the reference."
+   },
+   "Q10": {
+    "groundedness": 5,
+    "correctness": 5,
+    "unsupported_claims": [],
+    "reasoning": "Authorization hold when the card is added or updated, gone within 3–7 business days, explain it's a hold, nothing to refund: KA-0012. Matches the reference."
+   },
+   "Q11": {
+    "groundedness": 5,
+    "correctness": 5,
+    "unsupported_claims": [],
+    "reasoning": "Duplicates refundable without approval, the $500 rule for other refunds, refund steps and timing: all in KA-0012. Matches the reference, including refunding the payment not the invoice."
+   },
+   "Q12": {
+    "groundedness": 5,
+    "correctness": 5,
+    "unsupported_claims": [],
+    "reasoning": "-V voided, -R1 revision, only the revision charged, why revisions happen, Hide voided invoices and Export statement: KA-0013. Matches the reference."
+   },
+   "Q13": {
+    "groundedness": 5,
+    "correctness": 5,
+    "unsupported_claims": [],
+    "reasoning": "Past the 14-day grace period, read-only except Owners who can reach billing, Retry payment restores access within a minute, suspension after day 60: KA-0015. Matches the reference."
+   },
+   "Q14": {
+    "groundedness": 5,
+    "correctness": 5,
+    "unsupported_claims": [],
+    "reasoning": "Known gap, daily check planned for 2026.11, what's blocked at 100%, ways to free space and add capacity: KA-0016. Matches the reference."
+   },
+   "Q15": {
+    "groundedness": 5,
+    "correctness": 5,
+    "unsupported_claims": [],
+    "reasoning": "250 MB web limit (KA-0017, KA-0001); API resumable upload up to 1 GB in 8 MB chunks, cloud links, Enterprise 2 GB, compress/split, Support can't raise it: KA-0017. Matches the reference."
+   },
+   "Q16": {
+    "groundedness": 5,
+    "correctness": 5,
+    "unsupported_claims": [],
+    "reasoning": "100/min with burst 20 per workspace, shared by all tokens and integrations, search limit, Settings > API > Usage, best practices: KA-0018. Matches the reference."
+   },
+   "Q17": {
+    "groundedness": 5,
+    "correctness": 5,
+    "unsupported_claims": [],
+    "reasoning": "Re-enable, Replay failed events, 72 hours, disabled after 24 hours of failures: KA-0019. Matches the reference."
+   },
+   "Q18": {
+    "groundedness": 5,
+    "correctness": 5,
+    "unsupported_claims": [],
+    "reasoning": "v1 retired 2026-08-01, anchor links don't redirect, DOC-311, URL workaround, reporting against DOC-311: KA-0020. Keeps the 'should redirect' hedge. Matches the reference."
+   },
+   "Q19": {
+    "groundedness": 5,
+    "correctness": 5,
+    "unsupported_claims": [],
+    "reasoning": "Over 50,000 rows runs in the background, old bookmarks trigger the empty immediate download, Export > CSV (email me when ready), 7-day link, 1,000,000 max: KA-0021. Matches the reference."
+   },
+   "Q20": {
+    "groundedness": 5,
+    "correctness": 5,
+    "unsupported_claims": [],
+    "reasoning": "Possible data exposure at least High, date before the 2026-09-16 fix so it matches ENG-4388 with the affected releases and scope, the steps and Security & Privacy escalation: KA-0022. Matches the reference fully."
+   },
+   "Q21": {
+    "groundedness": 5,
+    "correctness": 5,
+    "unsupported_claims": [],
+    "reasoning": "Beta since 2026.10.1 on Business+, Owner enables under Settings > Labs, S3 bucket with IAM role ARN, file naming, FR-118 handling: KA-0024. Matches the reference fully."
+   },
+   "Q22": {
+    "groundedness": 5,
+    "correctness": 5,
+    "unsupported_claims": [],
+    "reasoning": "Pre-2026.08.2 schedules saved as UTC, shows the right timezone but runs in UTC, edit-change-back-save fix: KA-0025. Matches the reference."
+   },
+   "Q23": {
+    "groundedness": 5,
+    "correctness": 5,
+    "unsupported_claims": [],
+    "reasoning": "Fixed date range as the most common cause with the Filters > Date fix, then snapshot, connector, cache refresh and source report checks: KA-0026. Matches the reference; the 15-minute cache duration is a minor omission."
+   },
+   "Q24": {
+    "groundedness": 5,
+    "correctness": 5,
+    "unsupported_claims": [],
+    "reasoning": "Why it happens, Filter on server path with 500-row pages, indexed fields, saved views, formula columns, archiving, escalation: KA-0028. Matches the reference's main point and key facts; the 2026.11 auto-on note is left out."
+   },
+   "Q25": {
+    "groundedness": 5,
+    "correctness": 5,
+    "unsupported_claims": [],
+    "reasoning": "Refresh Token Policy as the cause of scheduled disconnects, the Salesforce Setup path, 'valid until revoked', reconnect steps: KA-0031. Matches the reference."
+   },
+   "Q26": {
+    "groundedness": 5,
+    "correctness": 4,
+    "unsupported_claims": [],
+    "reasoning": "Form doesn't reach the payment step; check conditional logic: KA-0033. Main point right; it leaves out that failed payments are handled as Urgent, which the reference includes."
+   },
+   "Q27": {
+    "groundedness": 5,
+    "correctness": 5,
+    "unsupported_claims": [],
+    "reasoning": "What blocks deletion, ENG-4502 with the 2026.11.1 fix, Usage tab, remove references, delete again, Archive field: KA-0035. Matches the reference fully."
+   },
+   "Q28": {
+    "groundedness": 5,
+    "correctness": 5,
+    "unsupported_claims": [],
+    "reasoning": "200 runs, one per task: KA-0036. Matches the reference."
+   },
+   "Q29": {
+    "groundedness": 5,
+    "correctness": 5,
+    "unsupported_claims": [],
+    "reasoning": "Daily includes weekends, Every weekday, working days with Every working day, cleanup filter: KA-0037. Matches the reference."
+   },
+   "Q30": {
+    "groundedness": 5,
+    "correctness": 5,
+    "unsupported_claims": [],
+    "reasoning": "Resolved in 2.3.2, article doesn't apply on 2.3.2+, collect version, iOS version and crash log path, escalate to Mobile Engineering: KA-0040. Matches the reference."
+   },
+   "Q31": {
+    "groundedness": 5,
+    "correctness": 5,
+    "unsupported_claims": [],
+    "reasoning": "Open, FE-1290, 2026.11.2, the four workarounds, link to FE-1290 and set Pending Release not Closed: KA-0041. Matches the reference fully."
+   },
+   "Q32": {
+    "groundedness": 4,
+    "correctness": 5,
+    "unsupported_claims": [
+     "the bulk edit can still be undone that way (implies the whole edit, though revert is per task)"
+    ],
+    "reasoning": "30-day Business backup retention so 45 days is outside the window, and Activity > Revert with no time limit, are in KA-0042. 'The bulk edit can still be undone that way' is slightly broader than the excerpt, which describes reverting field changes on a task, one task at a time. Main point and the revert route match the reference."
+   },
+   "Q33": {
+    "groundedness": 5,
+    "correctness": 5,
+    "unsupported_claims": [],
+    "reasoning": "Entries can't be edited or deleted including by Owners, Enterprise 7 years, streaming: KA-0043. Matches the reference; Business's 1 year is a secondary omission."
+   },
+   "Q34": {
+    "groundedness": 5,
+    "correctness": 5,
+    "unsupported_claims": [],
+    "reasoning": "Subdomains only, not apex domains, the custom domain setting and CNAME target: KA-0044. Matches the reference."
+   },
+   "Q35": {
+    "groundedness": 5,
+    "correctness": 5,
+    "unsupported_claims": [],
+    "reasoning": "Current languages, Italian and Polish planned for H1 2027 under FR-077, language setting: KA-0045. Gives the timing the article says to tell customers, without promising more. Matches the reference."
+   },
+   "Q36": {
+    "groundedness": 5,
+    "correctness": 4,
+    "unsupported_claims": [],
+    "reasoning": "Says the articles list limits (KA-0001) but no prices; correct refusal with no figure invented. The reference also asks the answer to point to the pricing page or account team, which it doesn't."
+   },
+   "Q37": {
+    "groundedness": 5,
+    "correctness": 5,
+    "unsupported_claims": [],
+    "reasoning": "Says the articles only describe Google Calendar sync (KA-0032) and don't mention Outlook. Doesn't assume either way. Correct refusal."
+   },
+   "Q38": {
+    "groundedness": 5,
+    "correctness": 5,
+    "unsupported_claims": [],
+    "reasoning": "Says data residency isn't covered; the only regional detail, backups in a separate region (KA-0042), is supported. Correct refusal."
+   },
+   "Q39": {
+    "groundedness": 5,
+    "correctness": 5,
+    "unsupported_claims": [],
+    "reasoning": "Says HIPAA/BAA isn't mentioned; lists the SOC 2, ISO 27001 and DPA documents from KA-0043. No claim either way. Correct refusal."
+   },
+   "Q40": {
+    "groundedness": 5,
+    "correctness": 5,
+    "unsupported_claims": [],
+    "reasoning": "Says the articles don't say; the 2.3.1 crash is documented for iOS (KA-0040) and nothing covers Android. Doesn't extend it to Android or deny it. Correct refusal."
+   }
+  },
+  "agentic": {
+   "Q01": {
+    "groundedness": 5,
+    "correctness": 5,
+    "unsupported_claims": [],
+    "reasoning": "4 hours for High on Business, from KA-0002. Matches the reference."
+   },
+   "Q02": {
+    "groundedness": 5,
+    "correctness": 5,
+    "unsupported_claims": [],
+    "reasoning": "Main claims from KA-0004; IdP examples (Okta, Entra ID, Google Workspace) from KA-0007; the other reset-email causes, the admin reset link, the Messaging escalation are all in KA-0004. 'Confirm the IdP account is active' is generic advice. The note that an admin-sent reset has no effect under SSO follows from 'Lumora does not send reset emails'. Matches the reference."
+   },
+   "Q03": {
+    "groundedness": 5,
+    "correctness": 5,
+    "unsupported_claims": [],
+    "reasoning": "Ranges, Settings > Security > Sign-in policy, the strict 3/24h policy, unlock path, Support Console unlock and the defaults (5 attempts, 15 minutes) are all in KA-0005. Matches the reference."
+   },
+   "Q04": {
+    "groundedness": 5,
+    "correctness": 5,
+    "unsupported_claims": [],
+    "reasoning": "TOTP details, all four steps, and the lost-device advice (backup codes, Admin Reset 2FA, Support identity check) are in KA-0006. The lost-device sentence is clumsily worded but supported. Matches the reference."
+   },
+   "Q05": {
+    "groundedness": 5,
+    "correctness": 5,
+    "unsupported_claims": [],
+    "reasoning": "IdP clock off, 3 minutes, fix NTP: KA-0007. Matches the reference."
+   },
+   "Q06": {
+    "groundedness": 5,
+    "correctness": 5,
+    "unsupported_claims": [],
+    "reasoning": "Open, ENG-4471, 2026.11.1, both causes with the 12-hour default, all four workarounds and the customer messaging are in KA-0008. Matches the reference fully."
+   },
+   "Q07": {
+    "groundedness": 4,
+    "correctness": 5,
+    "unsupported_claims": [
+     "the Viewer seat check is almost always the culprit"
+    ],
+    "reasoning": "All five checks, in order, are in KA-0009. The closing line that the seat is 'almost always the culprit' is not stated (the article only says to check in order): wording broader than the excerpt, a minor slip. Main point and the follow-up checks match the reference."
+   },
+   "Q08": {
+    "groundedness": 3,
+    "correctness": 4,
+    "unsupported_claims": [
+     "freeing a seat lets the pending invites send automatically / the email goes out once a seat is available",
+     "the direct invite link workaround doesn't apply to the 'awaiting seat' state"
+    ],
+    "reasoning": "Main cause (all paid seats in use, no email sent, add or free a seat) and the other-causes table are in KA-0010. Two secondary claims aren't in the excerpts: that invites send automatically once a seat frees up, and that the Copy invite link workaround doesn't apply here (KA-0010 gives that workaround for pending invites without such a restriction). Main point right; the workaround claim could steer an agent away from a documented option."
+   },
+   "Q09": {
+    "groundedness": 5,
+    "correctness": 5,
+    "unsupported_claims": [],
+    "reasoning": "Seat, content and reversibility from KA-0011; doing it in bulk or by CSV with deactivate/remove also in KA-0011. Matches the reference."
+   },
+   "Q10": {
+    "groundedness": 4,
+    "correctness": 5,
+    "unsupported_claims": [
+     "the payment processor places the hold to verify the card / a hold from the bank verifying the card"
+    ],
+    "reasoning": "Authorization hold on card add/update, 3–7 business days, nothing to refund, and the other cases (second workspace, true duplicate refund steps) are in KA-0012. Attributing the hold to 'Lumora's payment processor' 'to verify the card' is a little broader than the excerpt, which only says a hold is taken when the card is added or updated. Matches the reference."
+   },
+   "Q11": {
+    "groundedness": 5,
+    "correctness": 5,
+    "unsupported_claims": [],
+    "reasoning": "Same facts as KA-0012: duplicates need no approval, the $500 rule applies to other refunds, refund steps and timing. Matches the reference."
+   },
+   "Q12": {
+    "groundedness": 5,
+    "correctness": 5,
+    "unsupported_claims": [],
+    "reasoning": "-V/-R1, statuses, revision reasons, Hide voided invoices, Export statement, credit note via the Billing queue, proration and two-workspace alternatives: all in KA-0013. Matches the reference."
+   },
+   "Q13": {
+    "groundedness": 5,
+    "correctness": 5,
+    "unsupported_claims": [],
+    "reasoning": "Read-only except Owners, suspension after day 60 with 90 more days of data, Retry payment, billing-contacts-only emails (KA-0015 extra chunk), suppression check, 7-day courtesy extension: all in KA-0015. 'Temporarily restore full access' follows from the grace period meaning everything works. Matches the reference."
+   },
+   "Q14": {
+    "groundedness": 4,
+    "correctness": 5,
+    "unsupported_claims": [
+     "the 80%/95% thresholds are skipped because the checks don't catch rapid jumps within the same check interval"
+    ],
+    "reasoning": "Thresholds and recipients, the known gap, the 2026.11 daily check, what's blocked at 100% and the free-space steps are in KA-0016. The explanation of the mechanism ('within the same check interval') isn't stated; it's a gloss on 'a daily check that catches this is planned', so a minor broadening. Matches the reference."
+   },
+   "Q15": {
+    "groundedness": 4,
+    "correctness": 5,
+    "unsupported_claims": [
+     "linking from cloud storage means there's effectively no size cap"
+    ],
+    "reasoning": "250 MB, API resumable 1 GB in 8 MB chunks, cloud links not counting against the limit, compress/split, Enterprise 2 GB web and 5 GB API, Support can't raise it: KA-0017. 'Effectively no size cap' goes slightly beyond 'don't count against storage or the size limit'. Matches the reference."
+   },
+   "Q16": {
+    "groundedness": 4,
+    "correctness": 5,
+    "unsupported_claims": [
+     "a short spike above 80/min could trigger a 429 if it coincides with other traffic (reading of 'burst 20')"
+    ],
+    "reasoning": "Shared per-workspace limit, search limit, headers, Usage page, Retry-After, webhooks, batch, ?fields= and the Enterprise CSM note are in KA-0018. The excerpt gives a burst figure but doesn't explain it, so the spike explanation is the answer's own interpretation; minor. Matches the reference's main point."
+   },
+   "Q17": {
+    "groundedness": 5,
+    "correctness": 5,
+    "unsupported_claims": [],
+    "reasoning": "Disable rule (non-2xx or >10 s, 5 retries over 24 hours), Re-enable, Replay failed events for 72 hours, the common endpoint failure causes and Send test event: KA-0019. The 72-hour limitation is hedged ('based on the available documentation'). Matches the reference."
+   },
+   "Q18": {
+    "groundedness": 4,
+    "correctness": 5,
+    "unsupported_claims": [
+     "most old /docs/api/ links redirect automatically"
+    ],
+    "reasoning": "Retirement date, anchor links and community posts not redirecting, DOC-311, the URL workaround, the current doc URLs and weekly fixes are in KA-0020. The excerpt says old links 'should redirect'; the answer drops that hedge. Matches the reference."
+   },
+   "Q19": {
+    "groundedness": 4,
+    "correctness": 5,
+    "unsupported_claims": [
+     "an 'outdated UI state' can trigger the immediate download"
+    ],
+    "reasoning": "The 50,000-row cause, the email export, the other causes and the escalation details are in KA-0021. 'Outdated UI state' is added to the excerpt's 'older browser bookmarks', and 'verify your project role under Settings' adds a vague location; minor. Leads with the right cause. Matches the reference."
+   },
+   "Q20": {
+    "groundedness": 5,
+    "correctness": 5,
+    "unsupported_claims": [],
+    "reasoning": "ENG-4388 cause, window, fix date, scope, priority, the steps, Security & Privacy escalation and the regression note: all in KA-0022. Matches the reference fully."
+   },
+   "Q21": {
+    "groundedness": 4,
+    "correctness": 5,
+    "unsupported_claims": [
+     "audit log streaming to S3 is 'already generally available'"
+    ],
+    "reasoning": "Beta status, plans, the Email/Slack GA options, Owner enablement, S3 bucket with IAM role ARN, naming, Labs feedback and FR-118 handling are in KA-0024. The closing note about audit log streaming to S3 on Enterprise is in KA-0043, but calling it 'generally available' isn't stated; minor. Matches the reference fully."
+   },
+   "Q22": {
+    "groundedness": 5,
+    "correctness": 5,
+    "unsupported_claims": [],
+    "reasoning": "The pre-2026.08.2 UTC defect, the DST note, and the open-check-edit-save fix are in KA-0025. Ruling out DST follows from the stated DST behaviour. Matches the reference."
+   },
+   "Q23": {
+    "groundedness": 5,
+    "correctness": 5,
+    "unsupported_claims": [],
+    "reasoning": "All five causes with their fixes, the 15-minute cache and the escalation details are in KA-0026. Matches the reference fully."
+   },
+   "Q24": {
+    "groundedness": 5,
+    "correctness": 5,
+    "unsupported_claims": [],
+    "reasoning": "Cause, Filter on server with 500-row pages, indexed fields with plan counts, saved views, formula columns, archiving, the 2026.11 auto-on note, escalation: KA-0028. Matches the reference fully."
+   },
+   "Q25": {
+    "groundedness": 5,
+    "correctness": 5,
+    "unsupported_claims": [],
+    "reasoning": "Refresh Token Policy cause and fix path, the other five causes, reconnect steps: KA-0031. Matches the reference."
+   },
+   "Q26": {
+    "groundedness": 5,
+    "correctness": 5,
+    "unsupported_claims": [],
+    "reasoning": "Transaction log path, never reaches the payment step, conditional logic, contrast with logged errors, Urgent because of lost revenue: KA-0033. Matches the reference fully."
+   },
+   "Q27": {
+    "groundedness": 5,
+    "correctness": 5,
+    "unsupported_claims": [],
+    "reasoning": "Blocking references, ENG-4502 and 2026.11.1, Usage tab steps, Archive field, 30-day restore of deleted fields: KA-0035. Matches the reference fully."
+   },
+   "Q28": {
+    "groundedness": 4,
+    "correctness": 5,
+    "unsupported_claims": [
+     "a run is counted per task affected, not per rule trigger, for scheduled rules"
+    ],
+    "reasoning": "200 runs, one per task, is in KA-0036. The added explanation over-generalises: the article defines a run as one rule triggering once, and gives the 200-task scheduled rule as an example, not a separate counting rule. Minor. Matches the reference."
+   },
+   "Q29": {
+    "groundedness": 5,
+    "correctness": 5,
+    "unsupported_claims": [],
+    "reasoning": "Daily includes weekends, Every weekday, working days, holidays, the 2026.09.3 DST defect with the re-save fix, and the cleanup filter: KA-0037. Matches the reference."
+   },
+   "Q30": {
+    "groundedness": 5,
+    "correctness": 5,
+    "unsupported_claims": [],
+    "reasoning": "2.3.1 scope and cause, fixed in 2.3.2 on 2026-07-15, article doesn't apply, the three agent steps: KA-0040. The Urgent note matches KA-0002's example (mobile app crashing on launch for all users). Matches the reference."
+   },
+   "Q31": {
+    "groundedness": 5,
+    "correctness": 5,
+    "unsupported_claims": [],
+    "reasoning": "Symptoms, Open/FE-1290/2026.11.2, the four workarounds and the Pending Release instruction: KA-0041. Matches the reference fully."
+   },
+   "Q32": {
+    "groundedness": 3,
+    "correctness": 4,
+    "unsupported_claims": [
+     "Activity-tab revert only works for individual field changes, not a full bulk-edit rollback, and likely won't help here"
+    ],
+    "reasoning": "30-day Business retention vs 45 days, Enterprise 90 days, the restore process and the self-service windows are in KA-0042. The excerpt says field changes on a task can be reverted with no time limit; the claim that this 'likely won't help' and isn't a way to roll back the bulk edit isn't in the excerpts, and it steers the agent away from the one route that works. Main point (no backup restore) is right."
+   },
+   "Q33": {
+    "groundedness": 4,
+    "correctness": 5,
+    "unsupported_claims": [
+     "entries can be streamed out 'for longer-term storage'"
+    ],
+    "reasoning": "No deletion including Owners, Enterprise 7 years, the streaming destinations and Business 1 year are in KA-0043. The purpose 'for longer-term storage' isn't stated; minor. Matches the reference fully."
+   },
+   "Q34": {
+    "groundedness": 5,
+    "correctness": 5,
+    "unsupported_claims": [],
+    "reasoning": "Subdomains only, setup steps, CAA, Active redirect, SSO 14-day overlap, API URLs unchanged, Enterprise-only: KA-0044. Matches the reference."
+   },
+   "Q35": {
+    "groundedness": 5,
+    "correctness": 5,
+    "unsupported_claims": [],
+    "reasoning": "Current languages, Italian and Polish planned for H1 2027, language setting: KA-0045. Matches the reference."
+   },
+   "Q36": {
+    "groundedness": 5,
+    "correctness": 5,
+    "unsupported_claims": [],
+    "reasoning": "Says no pricing figures are in the articles and suggests the pricing page. 'Or the Billing Console' is generic advice. Correct refusal with a pointer, as the reference asks."
+   },
+   "Q37": {
+    "groundedness": 5,
+    "correctness": 5,
+    "unsupported_claims": [],
+    "reasoning": "Google Calendar details are from KA-0032. Says Outlook isn't documented; the iCal idea is explicitly hedged as undocumented. Doesn't claim either way. Correct refusal."
+   },
+   "Q38": {
+    "groundedness": 5,
+    "correctness": 5,
+    "unsupported_claims": [],
+    "reasoning": "Says no selectable data residency is documented; the separate-region backup detail (KA-0042) and Trust Center/DPA (KA-0043) are supported; the possible enterprise accommodation is hedged. Correct refusal."
+   },
+   "Q39": {
+    "groundedness": 5,
+    "correctness": 5,
+    "unsupported_claims": [],
+    "reasoning": "Says HIPAA/BAA isn't mentioned; SOC 2, ISO 27001, DPA and the Trust Center are in KA-0043. No claim either way. Correct refusal."
+   },
+   "Q40": {
+    "groundedness": 3,
+    "correctness": 2,
+    "unsupported_claims": [
+     "'No' — the 2.3.1 launch crash is 'not Android' / Android 2.3.1 doesn't crash"
+    ],
+    "reasoning": "The iOS facts and agent notes are from KA-0040, and the body correctly says Android 'is not documented'. But the answer opens with 'No — … specific to iOS, not Android', answering a question the articles can't answer: the excerpt is scoped to iOS and says nothing about Android. The reference says the answer should not extend the article to Android either way. An agent reading the first line would tell the customer Android is unaffected."
+   }
+  }
+ }
+}
