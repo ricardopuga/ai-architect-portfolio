@@ -185,7 +185,7 @@ def draft_reply(
         guidance,
     )
     try:
-        draft = drafting.write_draft(_claude(), prompt, chunks)
+        draft = drafting.write_draft(_claude(), prompt, chunks, case.case_number)
     except drafting.DraftError as e:
         raise ToolError(str(e)) from e
     return DraftReply(

@@ -234,7 +234,7 @@ def suggest_reply(
         request.guidance if request else None,
     )
     try:
-        draft = drafting.write_draft(_claude(), prompt, chunks)
+        draft = drafting.write_draft(_claude(), prompt, chunks, case.case_number)
     except drafting.DraftError as e:
         raise HTTPException(status_code=502, detail=str(e)) from e
     return SuggestedReplyOut(

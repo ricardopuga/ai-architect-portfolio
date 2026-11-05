@@ -196,6 +196,65 @@ aws logs tail /ecs/casehandlersf --since 15m      # startup and request logs
 
 A 200 on `/cases/...` proves the API key and the Salesforce secrets reached the container. A draft from `suggested-reply` with `[KA-…]` citations proves the rest: the task role could search the KB, and the Anthropic key reached Claude. Each draft costs one Claude call. Don't test with `POST /comments`, because it writes to the org.
 
+## Step 7. Usage logging and spend alerts
+
+Claude is billed by Anthropic, not AWS, so an AWS Budget can't see it. The app logs each Claude call instead, and CloudWatch adds the costs up.
+
+**What's logged.** Every Claude call, refusals included, writes one JSON line to the container's log (`/ecs/casehandlersf`). The line holds the model, tokens, estimated cost, Case number, stop reason and duration. Prompts and replies aren't logged.
+
+```json
+{"event": "claude_usage", "model": "claude-opus-5-5", "case_number": "00001001", "stop_reason": "end_turn",
+ "input_tokens": 2300, "output_tokens": 420, "cache_read_input_tokens": 0, "cost_usd": 0.0176,
+ "price_known": true, "seconds": 6.8}
+```
+
+The cost is estimated from the prices in `drafting.py` (`PRICES`). A model missing from that table is costed at the highest price, so the alarm errs on the safe side. Update `PRICES` when prices change.
+
+**Alerts**, for a $10 a month limit. Set `EMAIL` first:
+
+```bash
+EMAIL=<your email>
+TOPIC=$(aws sns create-topic --name casehandlersf-spend-alerts \
+  --attributes KmsMasterKeyId=alias/aws/sns --query TopicArn --output text)
+aws sns subscribe --topic-arn $TOPIC --protocol email --notification-endpoint $EMAIL
+# Click the link in the confirmation email, or no alerts arrive.
+
+# A metric that adds up cost_usd from the claude_usage lines
+aws logs put-metric-filter --log-group-name /ecs/casehandlersf --filter-name claude-usage-cost \
+  --filter-pattern '{ $.event = "claude_usage" }' \
+  --metric-transformations metricName=ClaudeCostUSD,metricNamespace=CaseHandlerSF,metricValue='$.cost_usd',defaultValue=0
+
+# Alarm when a day's estimated Claude spend passes $0.33 ($10 / 30)
+aws cloudwatch put-metric-alarm --alarm-name casehandlersf-claude-daily-spend \
+  --namespace CaseHandlerSF --metric-name ClaudeCostUSD --statistic Sum \
+  --period 86400 --evaluation-periods 1 --threshold 0.33 \
+  --comparison-operator GreaterThanThreshold --treat-missing-data notBreaching \
+  --alarm-actions $TOPIC --ok-actions $TOPIC
+
+# The AWS-billed part (Bedrock search): a $10 monthly budget, emails at 80%, 100% and forecast 100%
+aws budgets create-budget --account-id $ACCOUNT \
+  --budget '{"BudgetName":"casehandlersf-bedrock-monthly","BudgetType":"COST","TimeUnit":"MONTHLY",
+  "BudgetLimit":{"Amount":"10","Unit":"USD"},"CostFilters":{"Service":["Amazon Bedrock"]}}' \
+  --notifications-with-subscribers '[
+  {"Notification":{"NotificationType":"ACTUAL","ComparisonOperator":"GREATER_THAN","Threshold":80,"ThresholdType":"PERCENTAGE"},"Subscribers":[{"SubscriptionType":"EMAIL","Address":"'$EMAIL'"}]},
+  {"Notification":{"NotificationType":"ACTUAL","ComparisonOperator":"GREATER_THAN","Threshold":100,"ThresholdType":"PERCENTAGE"},"Subscribers":[{"SubscriptionType":"EMAIL","Address":"'$EMAIL'"}]},
+  {"Notification":{"NotificationType":"FORECASTED","ComparisonOperator":"GREATER_THAN","Threshold":100,"ThresholdType":"PERCENTAGE"},"Subscribers":[{"SubscriptionType":"EMAIL","Address":"'$EMAIL'"}]}]'
+```
+
+**Read the usage:**
+
+```bash
+# Every Claude call in the last day
+aws logs filter-log-events --log-group-name /ecs/casehandlersf \
+  --filter-pattern '{ $.event = "claude_usage" }' --start-time $(( ($(date +%s) - 86400) * 1000 ))
+```
+
+In CloudWatch Logs Insights, `filter event = "claude_usage" | stats sum(cost_usd), count(*) by bin(1d)` gives spend per day.
+
+**Two limits of this setup:**
+- **An alarm only alerts; it doesn't stop spending.** For a hard cap, also set a **monthly spend limit** on the Anthropic Console workspace that owns the cloud key.
+- **It only counts calls the app makes.** If the key leaks and is used elsewhere, this log never sees it. That's another reason for the dedicated workspace, which has its own limit and its own usage page.
+
 ## Updating
 
 - **New code:** build and push with a new tag (step 2), change `image` in `container.json`, then run:
@@ -216,7 +275,8 @@ Rough figures for eu-west-1. Check the AWS pricing pages before relying on them.
 
 - **Fargate task** (0.5 vCPU, 1 GB, ARM): billed per second while it runs, and one task always runs.
 - **Load balancer:** billed per hour **even with no traffic**. This is usually the largest fixed cost.
-- **Each `suggested-reply`:** one Bedrock `Retrieve` ($0.001) and one Claude Opus 5.5 call (about $0.01–0.02). See `experiments/BEDROCK_KB_COMPARISON.md`.
+- **Each `suggested-reply`:** one Bedrock `Retrieve` ($0.001) and one Claude Opus 5.5 call (about $0.02–0.03; one measured call cost $0.025). See `experiments/BEDROCK_KB_COMPARISON.md`.
+- **Alerts:** the alarm is about $0.10 a month; the metric filter, the SNS email and the first two budgets are free.
 - **Secrets Manager:** about $0.40 per secret per month, plus a small charge per 10,000 reads. ECS reads the secret only when a task starts.
 - **ECR and CloudWatch Logs:** cents a month at this size.
 
@@ -236,6 +296,9 @@ aws iam delete-role --role-name casehandlersf-ecs-infrastructure
 aws iam delete-role-policy --role-name casehandlersf-ecs-task --policy-name retrieve-lumora-kb
 aws iam delete-role --role-name casehandlersf-ecs-task
 aws logs delete-log-group --log-group-name /ecs/casehandlersf
+aws cloudwatch delete-alarms --alarm-names casehandlersf-claude-daily-spend
+aws sns delete-topic --topic-arn arn:aws:sns:$AWS_REGION:$ACCOUNT:casehandlersf-spend-alerts
+aws budgets delete-budget --account-id $ACCOUNT --budget-name casehandlersf-bedrock-monthly
 ```
 
 Delete the service first: it removes the load balancer that Express Mode created. The secret can be recovered for 7 days after deletion. The Bedrock KB is separate: remove it with `experiments/bedrock_kb_setup.py --delete`, after which `suggested-reply` returns 502.
