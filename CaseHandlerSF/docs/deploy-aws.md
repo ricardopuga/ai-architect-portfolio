@@ -255,6 +255,21 @@ In CloudWatch Logs Insights, `filter event = "claude_usage" | stats sum(cost_usd
 - **An alarm only alerts; it doesn't stop spending.** For a hard cap, also set a **monthly spend limit** on the Anthropic Console workspace that owns the cloud key.
 - **It only counts calls the app makes.** If the key leaks and is used elsewhere, this log never sees it. That's another reason for the dedicated workspace, which has its own limit and its own usage page.
 
+## Turn it off between demos
+
+The service bills about **$1.60 a day even with no traffic**: the load balancer, its public IPv4 addresses and the always-on task. Deleting the service removes all three. Everything else stays, for about **$0.50 a month**: the image in ECR, the secret, the roles, the log group, the spend alerts and the Bedrock KB.
+
+```bash
+uv run scripts/demo.py down     # delete the service, its load balancer and public IPs
+uv run scripts/demo.py up       # about 10 minutes; prints the new URL when /health answers
+uv run scripts/demo.py status   # running or not, and where
+```
+
+- `up` uses the newest image in ECR. Pass `--tag <tag>` for a specific one. It reads `SF_DOMAIN_URL` and `BEDROCK_KB_ID` from `.env`, and the secrets from Secrets Manager as before.
+- **Each `up` gets a new URL.** Express Mode creates a new load balancer and address every time.
+- Start `up` about 15 minutes before a demo: the first task needs a few minutes to become healthy, and a brand-new address can take a few minutes to resolve.
+- Right after `down`, the old service drains for a few minutes. If `up` says it's still being deleted, wait and run it again.
+
 ## Updating
 
 - **New code:** build and push with a new tag (step 2), change `image` in `container.json`, then run:
