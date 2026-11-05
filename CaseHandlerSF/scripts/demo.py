@@ -17,10 +17,15 @@ Each `up` gets a new URL.
 """
 
 import argparse
+import http.client
+import shutil
+import socket
+import ssl
+import subprocess
 import sys
 import time
-import urllib.request
 from pathlib import Path
+from urllib.parse import urlparse
 
 import boto3
 from botocore.exceptions import ClientError
@@ -122,12 +127,51 @@ def container(aws: Aws, tag: str) -> dict:
     }
 
 
-def healthy(url: str) -> bool:
+def resolve(host: str) -> list[str]:
+    """The host's IPv4 addresses, asked from public DNS resolvers with `dig`.
+
+    Not through this machine's resolver: macOS, and home routers, cache a "not found"
+    answer for several minutes, and a brand-new Express Mode address doesn't exist for
+    the first minutes. Asking early through them makes every later lookup fail for a
+    while, including the user's own curl. Without dig, fall back to the system resolver."""
+    if shutil.which("dig"):
+        for server in ("1.1.1.1", "8.8.8.8"):
+            out = subprocess.run(
+                ["dig", "+short", "+time=3", "+tries=1", f"@{server}", "A", host],
+                check=False,
+                capture_output=True,
+                text=True,
+                timeout=15,
+            ).stdout
+            ips = [
+                w
+                for w in out.split()
+                if w.count(".") == 3 and w.replace(".", "").isdigit()
+            ]
+            if ips:
+                return ips
+        return []
     try:
-        with urllib.request.urlopen(f"{url}/health", timeout=10) as r:
-            return r.status == 200
+        return [socket.gethostbyname(host)]
     except OSError:
-        return False
+        return []
+
+
+def healthy(url: str) -> bool:
+    """GET /health returns 200, connecting to the IP from resolve() with the right TLS name."""
+    host = urlparse(url).hostname or ""
+    for ip in resolve(host):
+        try:
+            sock = socket.create_connection((ip, 443), timeout=10)
+            conn = http.client.HTTPSConnection(host, timeout=10)
+            conn.sock = ssl.create_default_context().wrap_socket(
+                sock, server_hostname=host
+            )
+            conn.request("GET", "/health")
+            return conn.getresponse().status == 200
+        except OSError:
+            continue
+    return False
 
 
 def up(aws: Aws, tag: str | None) -> None:
@@ -169,6 +213,10 @@ def up(aws: Aws, tag: str | None) -> None:
             print(
                 "The API key: aws secretsmanager get-secret-value --secret-id casehandlersf/api "
                 f"--region {REGION} --query SecretString --output text"
+            )
+            print(
+                "If curl can't resolve the host, your Mac or router cached it before it existed: "
+                "wait a few minutes (see the root README)."
             )
             print(
                 "\nIt bills about $1.60 a day while up. Turn it off with: uv run scripts/demo.py down"

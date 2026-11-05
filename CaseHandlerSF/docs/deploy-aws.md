@@ -180,7 +180,7 @@ aws ecs describe-express-gateway-service \
 
 The first task takes a few minutes to become healthy. `aws ecs describe-services --cluster default --services casehandlersf-api` shows `has reached a steady state` when it's ready.
 
-**`curl: Could not resolve host` on a brand-new endpoint?** If you called the address before its DNS record existed, your Mac may have cached the "not found" answer for a few minutes, even though `dig <host>` already returns IPs. Wait, or test with `curl --resolve "<host>:443:<one IP from dig>" https://<host>/health`.
+**`curl: Could not resolve host` on a brand-new endpoint?** If you called the address before its DNS record existed, your Mac, or your router, may have cached the "not found" answer for a few minutes. `dig @1.1.1.1 <host>` asks a public resolver and shows whether the address exists. Wait, or test with `curl --resolve "<host>:443:<one IP from dig @1.1.1.1>" https://<host>/health`.
 
 ## Step 6. Check it
 

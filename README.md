@@ -65,6 +65,6 @@ uv run scripts/demo.py status
 ### Good to know
 
 - **Changed the code?** Build and push a new image before `up` (step 2 in [deploy-aws.md](CaseHandlerSF/docs/deploy-aws.md)). `up` uses the newest image in ECR, or a specific one with `--tag <tag>`.
-- **`curl: Could not resolve host`** right after `up`: the new address can take a few minutes to resolve. Wait and try again.
+- **`curl: Could not resolve host`** right after `up`: your Mac or your router asked for the new address before it existed and cached "not found" for a few minutes. Wait and try again, or skip the cache for one call: `curl --resolve "<host>:443:$(dig +short @1.1.1.1 <host> | head -1)" https://<host>/health`. `demo.py` itself asks a public DNS server, so it isn't affected.
 - **`up` says the previous service is still being deleted:** this happens right after a `down`. Wait a few minutes and run it again.
 - **Spend alerts** email you if Claude spend passes $0.33 in a day, or Bedrock spend nears $10 a month. See step 7 in [deploy-aws.md](CaseHandlerSF/docs/deploy-aws.md).
