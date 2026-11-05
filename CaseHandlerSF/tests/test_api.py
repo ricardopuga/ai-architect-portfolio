@@ -1,5 +1,7 @@
 from pathlib import Path
+from types import SimpleNamespace
 
+import botocore.exceptions
 import pytest
 from conftest import AUTH
 from fastapi.testclient import TestClient
@@ -9,7 +11,7 @@ from simple_salesforce.exceptions import (
     SalesforceRefusedRequest,
 )
 
-from casehandlersf import api
+from casehandlersf import api, bedrock_knowledge
 from casehandlersf.api import app
 
 client = TestClient(app, headers=AUTH)
@@ -233,3 +235,173 @@ def test_comment_rejected_by_salesforce_returns_502(
     assert response.json() == {
         "detail": "Salesforce request failed: SalesforceRefusedRequest (INSUFFICIENT_ACCESS)"
     }
+
+
+# --- POST /cases/{key}/suggested-reply ---
+
+KB_CHUNKS = [
+    bedrock_knowledge.Chunk(
+        "KA-0029", "Real-time changes appear with a delay", "Proxy blocks WebSockets."
+    ),
+    bedrock_knowledge.Chunk("KA-0012", "Network requirements", "Allow wss://rt."),
+]
+
+
+class FakeClaude:
+    def __init__(self, text: str = "", stop_reason: str = "end_turn") -> None:
+        self.calls: list[dict] = []
+        self.response = SimpleNamespace(
+            stop_reason=stop_reason, content=[SimpleNamespace(type="text", text=text)]
+        )
+        self.beta = SimpleNamespace(messages=SimpleNamespace(create=self._create))
+
+    def _create(self, **kwargs):
+        self.calls.append(kwargs)
+        return self.response
+
+
+@pytest.fixture
+def kb_queries(monkeypatch: pytest.MonkeyPatch) -> list[tuple[str, int]]:
+    queries: list[tuple[str, int]] = []
+
+    def fake_search(query: str, k: int = 5) -> list[bedrock_knowledge.Chunk]:
+        queries.append((query, k))
+        return KB_CHUNKS[:k]
+
+    monkeypatch.setattr(api.bedrock_knowledge, "search", fake_search)
+    return queries
+
+
+def fake_claude(monkeypatch: pytest.MonkeyPatch, **kwargs) -> FakeClaude:
+    fake = FakeClaude(**kwargs)
+    monkeypatch.setattr(api, "_claude", lambda: fake)
+    return fake
+
+
+def test_suggested_reply(monkeypatch: pytest.MonkeyPatch, kb_queries: list) -> None:
+    fake = fake_claude(
+        monkeypatch,
+        text="Hi,\nYour proxy blocks WebSockets [KA-0029] [KA-9999].\nThe Support team",
+    )
+    response = client.post(
+        "/cases/00001002/suggested-reply", json={"guidance": "Be brief"}
+    )
+
+    assert response.status_code == 200
+    case = FAKE_RECORDS["00001002"]
+    # Search uses the Case's subject and description.
+    assert kb_queries == [(f"{case['Subject']}\n{case['Description']}", 5)]
+    prompt = fake.calls[0]["messages"][0]["content"]
+    assert '<article id="KA-0029">' in prompt
+    assert "<agent_guidance>\nBe brief\n</agent_guidance>" in prompt
+    assert response.json() == {
+        "case_number": "00001002",
+        "reply": "Hi,\nYour proxy blocks WebSockets [KA-0029] [KA-9999].\nThe Support team",
+        "sources": [{"article_number": "KA-0029", "title": KB_CHUNKS[0].title}],
+        "unknown_citations": ["KA-9999"],
+    }
+
+
+def test_suggested_reply_without_body(
+    monkeypatch: pytest.MonkeyPatch, kb_queries: list
+) -> None:
+    fake = fake_claude(monkeypatch, text="Hi")
+    assert client.post("/cases/00001002/suggested-reply").status_code == 200
+    assert "<agent_guidance>" not in fake.calls[0]["messages"][0]["content"]
+
+
+def test_suggested_reply_needs_api_key(kb_queries: list) -> None:
+    response = TestClient(app).post("/cases/00001002/suggested-reply")
+    assert response.status_code == 401
+    assert kb_queries == []
+
+
+def test_suggested_reply_unknown_case(kb_queries: list) -> None:
+    assert client.post("/cases/00009999/suggested-reply").status_code == 404
+    assert kb_queries == []
+
+
+def test_suggested_reply_rejects_too_long_guidance(kb_queries: list) -> None:
+    response = client.post(
+        "/cases/00001002/suggested-reply", json={"guidance": "x" * 2001}
+    )
+    assert response.status_code == 422
+
+
+def test_suggested_reply_refusal_returns_502(
+    monkeypatch: pytest.MonkeyPatch, kb_queries: list
+) -> None:
+    fake_claude(monkeypatch, stop_reason="refusal")
+    response = client.post("/cases/00001002/suggested-reply")
+    assert response.status_code == 502
+    assert "declined" in response.json()["detail"]
+
+
+def test_suggested_reply_search_failure_returns_502(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    def fail(query: str, k: int = 5):
+        raise botocore.exceptions.ClientError(
+            {"Error": {"Code": "AccessDeniedException", "Message": "no"}}, "Retrieve"
+        )
+
+    monkeypatch.setattr(api.bedrock_knowledge, "search", fail)
+    response = client.post("/cases/00001002/suggested-reply")
+    assert response.status_code == 502
+    assert response.json()["detail"] == "Knowledge base search failed: ClientError"
+
+
+def test_suggested_reply_without_kb_settings_returns_503(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    monkeypatch.chdir(tmp_path)  # away from the project's .env
+    monkeypatch.delenv("BEDROCK_KB_ID", raising=False)
+    bedrock_knowledge._client.cache_clear()
+    try:
+        response = client.post("/cases/00001002/suggested-reply")
+    finally:
+        bedrock_knowledge._client.cache_clear()
+    assert response.status_code == 503
+
+
+def test_bedrock_result_to_chunk() -> None:
+    result = {
+        "content": {
+            "text": '---\narticle_number: KA-0029\ntitle: "Real-time collaboration delay"\n---\n## Cause'
+        },
+        "metadata": {"_document_title": "KA-0029-realtime-collaboration-delay.md"},
+    }
+    chunk = bedrock_knowledge.to_chunk(result)
+    assert (chunk.article_number, chunk.title) == (
+        "KA-0029",
+        "Real-time collaboration delay",
+    )
+
+    # A chunk from the middle of an article has no front matter: the title comes from the file name.
+    middle = {
+        "content": {"text": "Allow WebSockets to rt.lumora.example."},
+        "metadata": {
+            "_source_uri": "s3://bucket/articles/KA-0029-realtime-collaboration-delay.md",
+            "_document_title": "KA-0029-realtime-collaboration-delay.md",
+        },
+    }
+    chunk = bedrock_knowledge.to_chunk(middle)
+    assert (chunk.article_number, chunk.title) == (
+        "KA-0029",
+        "Realtime collaboration delay",
+    )
+
+
+def test_suggested_reply_keeps_title_of_best_chunk(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    chunks = [
+        bedrock_knowledge.Chunk("KA-0029", "Real-time collaboration delay", "Cause."),
+        bedrock_knowledge.Chunk("KA-0029", "realtime collaboration delay", "Fix."),
+    ]
+    monkeypatch.setattr(api.bedrock_knowledge, "search", lambda q, k=5: chunks)
+    fake_claude(monkeypatch, text="Fix it [KA-0029].")
+    sources = client.post("/cases/00001002/suggested-reply").json()["sources"]
+    assert sources == [
+        {"article_number": "KA-0029", "title": "Real-time collaboration delay"}
+    ]
